@@ -1,0 +1,11 @@
+{
+  "name": "Candy Kingdom: Tìm Kiếm Di Sản",
+  "short_name": "CandyHunt",
+  "description": "Game giải mã multiplayer trong Vương Quốc Kẹo",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF0F5",
+  "theme_color": "#FF69B4",
+  "icons": []
+}

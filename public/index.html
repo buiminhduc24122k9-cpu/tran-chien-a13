@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#FF69B4">
+  <title>🍭 Candy Kingdom: Tìm Kiếm Di Sản</title>
+  <link rel="manifest" href="/manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ═══ FLOATING CANDY PARTICLES ═══ -->
+  <div id="particles-bg"></div>
+
+  <!-- ═══ SCREEN: LOGIN ═══ -->
+  <div id="screen-login" class="screen active">
+    <div class="candy-container">
+      <div class="logo-area">
+        <div class="logo-candy">🍭</div>
+        <h1 class="game-title">Candy Kingdom</h1>
+        <h2 class="game-subtitle">✨ Tìm Kiếm Di Sản ✨</h2>
+        <p class="game-tagline">Giải mã bí ẩn • Chinh phục Boss • Giành vinh quang</p>
+      </div>
+      
+      <div class="login-card candy-card">
+        <div class="input-group">
+          <label for="input-name">🎀 Tên của bạn</label>
+          <input type="text" id="input-name" placeholder="Nhập tên hiển thị..." maxlength="20" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label for="input-password">🔑 Mật khẩu phòng</label>
+          <input type="password" id="input-password" placeholder="Nhập mật khẩu..." autocomplete="off">
+        </div>
+        <button id="btn-join" class="candy-btn candy-btn-primary" onclick="joinRoom()">
+          🚀 Vào Vương Quốc Kẹo!
+        </button>
+        <div id="login-error" class="error-msg" style="display:none;"></div>
+      </div>
+
+      <div class="info-badges">
+        <span class="badge">📱 Mobile Friendly</span>
+        <span class="badge">⚡ 5 Vòng Đấu</span>
+        <span class="badge">🏆 Giải Thưởng</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: LOBBY ═══ -->
+  <div id="screen-lobby" class="screen">
+    <div class="candy-container">
+      <div class="lobby-header">
+        <h1>🏰 Phòng Chờ</h1>
+        <p class="lobby-subtitle">Vương Quốc Kẹo đang tập hợp các chiến binh...</p>
+      </div>
+
+      <div class="lobby-info candy-card">
+        <div class="player-count-display">
+          <span class="count-number" id="lobby-count">0</span>
+          <span class="count-label">Người chơi</span>
+        </div>
+      </div>
+
+      <div class="players-grid" id="lobby-players">
+        <!-- Players will be added here -->
+      </div>
+
+      <div id="host-controls" class="host-area" style="display:none;">
+        <button id="btn-start" class="candy-btn candy-btn-success pulse-anim" onclick="hostStart()">
+          ⚔️ BẮT ĐẦU TRẬN ĐẤU!
+        </button>
+        <p class="host-tip">💡 Nhấn khi tất cả đã sẵn sàng</p>
+      </div>
+
+      <div id="player-waiting" class="waiting-area">
+        <div class="waiting-spinner"></div>
+        <p>Đang đợi chủ phòng bắt đầu...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: COUNTDOWN ═══ -->
+  <div id="screen-countdown" class="screen">
+    <div class="countdown-container">
+      <div class="countdown-boss-intro">
+        <p class="countdown-text">Trận đấu bắt đầu trong</p>
+        <div class="countdown-number" id="countdown-number">5</div>
+        <p class="countdown-ready">Chuẩn bị sẵn sàng! ⚔️</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: GAME ═══ -->
+  <div id="screen-game" class="screen">
+    <div class="game-container">
+      <!-- Game Header -->
+      <div class="game-header">
+        <div class="game-header-left">
+          <span class="round-badge" id="game-round">Vòng 1/5</span>
+        </div>
+        <div class="game-header-center">
+          <div class="timer-container">
+            <div class="timer-bar-bg">
+              <div class="timer-bar-fill" id="game-timer-bar"></div>
+            </div>
+            <span class="timer-text" id="game-timer-text">60s</span>
+          </div>
+        </div>
+        <div class="game-header-right">
+          <span class="score-display">⭐ <span id="game-score">0</span></span>
+        </div>
+      </div>
+
+      <!-- Boss Banner -->
+      <div class="boss-banner" id="boss-banner">
+        <div class="boss-emoji" id="boss-emoji">🍭</div>
+        <h2 class="boss-name" id="game-boss-name">Boss Name</h2>
+        <p class="boss-subtitle" id="game-boss-subtitle">Round subtitle</p>
+      </div>
+
+      <!-- Puzzle Area -->
+      <div class="puzzle-area candy-card" id="game-puzzle">
+        <!-- Puzzle content rendered by JS -->
+      </div>
+
+      <!-- Answer Area -->
+      <div class="answer-area" id="answer-area">
+        <!-- Answer inputs rendered by JS -->
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="game-actions">
+        <button id="btn-hint" class="candy-btn candy-btn-secondary" onclick="requestHint()">
+          💡 Gợi ý (<span id="hints-remaining">2</span>)
+        </button>
+        <button id="btn-submit" class="candy-btn candy-btn-primary" onclick="submitAnswer()">
+          ✅ Gửi Đáp Án
+        </button>
+      </div>
+
+      <!-- Hint Display -->
+      <div id="hint-display" class="hint-box" style="display:none;">
+        <p id="hint-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: ROUND RESULT ═══ -->
+  <div id="screen-round-result" class="screen">
+    <div class="candy-container">
+      <div class="result-header">
+        <div id="result-icon" class="result-emoji">✅</div>
+        <h2 id="result-title">Kết Quả Vòng</h2>
+        <p id="result-message" class="result-subtitle">Thông tin kết quả</p>
+      </div>
+
+      <div class="result-points candy-card">
+        <span class="points-label">Điểm nhận được</span>
+        <span class="points-value" id="result-points">+0</span>
+        <span class="points-total">Tổng: <span id="result-total">0</span>⭐</span>
+      </div>
+
+      <div class="leaderboard-mini candy-card">
+        <h3>📊 Bảng Xếp Hạng</h3>
+        <div id="leaderboard-round" class="leaderboard-list">
+          <!-- Leaderboard rows -->
+        </div>
+      </div>
+
+      <div class="next-round-timer">
+        <p>Vòng tiếp theo bắt đầu trong <span id="next-round-countdown">8</span>s...</p>
+        <div class="next-round-bar">
+          <div class="next-round-bar-fill" id="next-round-bar-fill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SCREEN: FINAL RESULTS ═══ -->
+  <div id="screen-results" class="screen">
+    <div class="candy-container">
+      <div class="final-header">
+        <div class="fireworks-emoji">🎆🎇🎆</div>
+        <h1 class="final-title">🏆 KẾT QUẢ CHUNG CUỘC 🏆</h1>
+        <p class="final-subtitle">Cuộc phiêu lưu trong Vương Quốc Kẹo đã kết thúc!</p>
+      </div>
+
+      <!-- Podium -->
+      <div class="podium" id="podium">
+        <!-- Podium slots rendered by JS -->
+      </div>
+
+      <!-- Full Rankings -->
+      <div class="full-rankings candy-card">
+        <h3>📋 Bảng Xếp Hạng Đầy Đủ</h3>
+        <table class="rankings-table">
+          <thead>
+            <tr>
+              <th>Hạng</th>
+              <th>Người Chơi</th>
+              <th>Điểm</th>
+              <th>Giải</th>
+            </tr>
+          </thead>
+          <tbody id="results-table">
+            <!-- Rows rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Host Reset -->
+      <div id="final-host-controls" style="display:none;">
+        <button class="candy-btn candy-btn-primary" onclick="hostReset()">
+          🔄 Chơi Lại
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ NOTIFICATION TOAST ═══ -->
+  <div id="toast" class="toast" style="display:none;">
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- ═══ SCRIPTS ═══ -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>
