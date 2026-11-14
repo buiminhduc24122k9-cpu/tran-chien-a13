@@ -2,7 +2,7 @@
   {
     "round": 1,
     "bossName": "🌸 Vòng 1: Khởi Động A13",
-    "question": "Họ và tên của giáo viên chủ nhiệm lớp mình là gì?",
+    "question": "Họ và tên của giáo viên chủ nhiệm?",
     "options": [
       "Huỳnh Thị Mộng Thư",
       "Nguyễn Thị Mộng Thư",
@@ -16,20 +16,20 @@
     "bossName": "🎀 Vòng 2: Phái Đẹp A13",
     "question": "Lớp mình có bao nhiêu bạn nữ?",
     "options": [
-      "20",
       "21",
+      "20",
       "22",
       "24"
     ],
-    "answer": "21"
+    "answer": "22"
   },
   {
     "round": 3,
     "bossName": "✨ Vòng 3: Sổ Đầu Bài Bí Ẩn",
-    "question": "Bạn nữ nào có số thứ tự 32 trong danh sách lớp?",
+    "question": "Bạn nữ nào có số thứ tự 32?",
     "options": [
-      "Bùi Trần Phương Mai",
       "Phồng Khiết Mai",
+      "Bùi Trần Phương Mai",
       "Nguyễn Trương Khánh Linh",
       "Lê Vương Mỹ Ngọc"
     ],
@@ -40,68 +40,68 @@
     "bossName": "🎂 Vòng 4: Duyên Phận Trùng Hợp",
     "question": "12A13 có bạn nam và nữ nào sinh cùng ngày cùng tháng?",
     "options": [
+      "Bảo Phúc, Thái Nhi",
       "Quế Chi, Tấn Trường",
       "Thùy Trang, Minh Đức",
-      "Bảo Phúc, Thái Nhi",
       "Bảo Hân, Minh Đăng"
     ],
-    "answer": "Bảo Phúc, Thái Nhi"
+    "answer": "Quế Chi, Tấn Trường"
   },
   {
     "round": 5,
     "bossName": "🎁 Vòng 5: Kỷ Niệm 19.11",
     "question": "Quà 19.11.2024 của các bạn nam là gì?",
     "options": [
-      "Vớ, bánh kẹo và sữa",
       "Bánh kẹo và sữa",
+      "Vớ, bánh kẹo và sữa",
       "Sữa milo và thiệp",
       "Gấu bông"
     ],
-    "answer": "Bánh kẹo và sữa"
+    "answer": "Sữa milo và thiệp"
   },
   {
     "round": 6,
     "bossName": "👓 Vòng 6: Kính Cận Tri Thức",
     "question": "Có bao nhiêu bạn nam trong lớp đeo mắt kính?",
     "options": [
-      "16",
       "17",
-      "18",
-      "20"
+      "20",
+      "16",
+      "18"
     ],
     "answer": "17"
   },
   {
     "round": 7,
     "bossName": "🪞 Vòng 7: Nam Thần Gương Mẫu",
-    "question": "Bạn nam nào trong lớp hay soi gương nhất?",
+    "question": "Bạn nam nào hay soi gương nhất?",
     "options": [
+      "Đức Tiệp",
       "Đức Anh",
       "Hoàng Hà",
-      "Đức Tiệp",
       "Trung Kiên"
     ],
-    "answer": "Đức Tiệp"
+    "answer": "Trung Kiên"
   },
   {
     "round": 8,
     "bossName": "💘 Vòng 8: Thuyền Trưởng Đẩy Thuyền",
-    "question": "Bạn nào bị ghép đôi với bạn nữ trong lớp nhiều nhất?",
+    "question": "Bạn nào bị ghép đôi vs bạn nữ trong lớp nhiều nhất",
     "options": [
+      "Đức Tiệp",
       "Gia Lâm",
       "Chí Bảo",
-      "Ngọc Nam",
-      "Đức Tiệp"
+      "Ngọc Nam"
     ],
-    "answer": "Đức Tiệp"
+    "answer": "Gia Lâm"
   },
   {
     "round": 9,
     "bossName": "🔥 Vòng 9: Ngọn Lửa Phong Trào",
-    "question": "Bạn nam nào nhiệt tình với các hoạt động của lớp nhất?",
+    "question": "Bạn nam nào nhiệt tình với lớp nhất",
     "options": [
-      "Minh Quân",
       "Minh Bảo",
+      "Minh Quân",
       "Thoại Tú",
       "Hoàng Long"
     ],
@@ -112,105 +112,105 @@
     "bossName": "🤫 Vòng 10: Cao Thủ Trầm Lặng",
     "question": "Lớp mình ai là bạn nam “im lặng” nhất?",
     "options": [
+      "Quốc Bảo",
       "Huy Hoàng",
       "Nguyên Khoa",
-      "Thanh An",
-      "Quốc Bảo"
+      "Thanh An"
     ],
     "answer": "Quốc Bảo"
   },
   {
     "round": 11,
     "bossName": "👨‍🏫 Vòng 11: Người Thầy Tận Tụy",
-    "question": "Thầy nào “quan tâm” lớp mình nhiều nhất?",
+    "question": "Thầy nào “quan tâm” lớp mình nhiều nhứt?",
     "options": [
-      "Phương Kim Cường",
       "Nguyễn Trường Xuân Tùng",
+      "Phương Kim Cường",
       "Dương Trọng Thông",
       "Huỳnh Thanh Khoa"
     ],
-    "answer": "Nguyễn Trường Xuân Tùng"
+    "answer": "Dương Trọng Thông"
   },
   {
     "round": 12,
     "bossName": "🍿 Vòng 12: Rạp Chiếu Phim Lớp 10",
-    "question": "Năm lớp 10, khi cô Kim Anh ra ngoài, cô đã mở phim gì cho lớp mình xem?",
+    "question": "Năm lớp 10, khii cô Kim Anh ra ngoài cô đã mở phim gì cho lớp mình xem?",
     "options": [
-      "Shin Cậu Bé Bút Chì",
-      "Thám Tử Conan",
       "Doraemon",
-      "Xin Chào Jadoo"
+      "Shin",
+      "Conan",
+      "Jadoo"
     ],
     "answer": "Doraemon"
   },
   {
     "round": 13,
     "bossName": "💻 Vòng 13: Coder Công Nghệ",
-    "question": "Tên TikTok “Ram DDR5 16Gb/4600” là của bạn nam nào?",
+    "question": "Tên tik tok “Ram DDR5 16Gb/4600” là của bạn nam nào?",
     "options": [
-      "Đông Hải",
       "Hoàng Anh",
+      "Đông Hải",
       "Quốc Dũng",
       "Minh Đăng"
     ],
-    "answer": "Hoàng Anh"
+    "answer": "Đông Hải"
   },
   {
     "round": 14,
     "bossName": "📝 Vòng 14: Kỷ Lục Bản Kiểm Điểm",
-    "question": "Lớp mình đã từng bị cô Cẩm bắt viết gần 30 bản kiểm điểm vì lý do gì?",
+    "question": "Lớp mình đã từng bị cô Cẩm bắt viết gần 30 bản kiểm điểm vì lí do gì?",
     "options": [
-      "Xé bảng tên",
       "Giờ thể dục vô phòng y tế",
-      "Ăn vụng trong lớp",
+      "Xé bảng tên",
+      "Ăn vụng",
       "Chơi game"
     ],
-    "answer": "Giờ thể dục vô phòng y tế"
+    "answer": "Xé bảng tên"
   },
   {
     "round": 15,
     "bossName": "🚨 Vòng 15: Giám Thị Đột Kích",
-    "question": "Giám thị đã ập vào lớp mình bắt chơi game và ăn vụng vào thời điểm nào?",
+    "question": "Giám thị đã ập vào lớp mình, bắt chơi game và ăn vụng vào thời điểm nào?",
     "options": [
-      "Tiết tự học",
       "Giờ ra chơi",
-      "Lúc đi Dambri",
-      "Cuối giờ về"
+      "Tiết tự học",
+      "Lúc đi dambri",
+      "Cuối giờ"
     ],
-    "answer": "Giờ ra chơi"
+    "answer": "Lúc đi dambri"
   },
   {
     "round": 16,
     "bossName": "🎀 Vòng 16: Món Quà Yêu Thương",
-    "question": "Mấy bạn nam đã chuẩn bị quà gì vào ngày 20.10?",
+    "question": "Mấy bạn nam đã chuẩn bị quà gì vào ngày 20.10 . 2025",
     "options": [
-      "Vòng tay xinh xắn",
       "Dây buộc tóc",
-      "Socola Kitkat",
-      "In ảnh kỷ niệm"
+      "Vòng tay",
+      "Kitkat",
+      "In ảnh"
     ],
     "answer": "Dây buộc tóc"
   },
   {
     "round": 17,
     "bossName": "🥊 Vòng 17: Cuộc Chiến Tình Thương",
-    "question": "Vụ “đánh iu” đầu tiên trong lớp mình là giữa ai với ai?",
+    "question": "Vụ “đánh iu” đầu tiên trong lớp mình là cụa ai vs ai",
     "options": [
+      "Ninh vs Trí",
       "Quân vs Nam",
       "Huy Hoàng vs Quốc Bảo",
-      "Quân vs Kiên",
-      "Ninh vs Trí"
+      "Quân vs Kiên"
     ],
-    "answer": "Ninh vs Trí"
+    "answer": "Quân vs Nam"
   },
   {
     "round": 18,
     "bossName": "🏖️ Vòng 18: Du Hý Long Hải",
-    "question": "Lúc tụi mình đi Long Hải, thầy cô nào đã đi chung với tụi mình?",
+    "question": "Lúc tụi mình đi Long Hải, thầy cô nào đi chung vs tụi mình?",
     "options": [
-      "Cô Mina, Cô Kim Anh, Thầy Thông",
-      "Thầy Lâm, Cô Kim Anh, Cô Ly",
       "Cô Ly, cô Cẩm, cô Kim Anh",
+      "Cô Mina, Cô Kim Anh, Thầy thông",
+      "Thầy Lâm, Cô Kim Anh, Cô Ly",
       "Cô Kim Anh, Cô Mai, Thầy Cường"
     ],
     "answer": "Cô Ly, cô Cẩm, cô Kim Anh"
@@ -218,22 +218,22 @@
   {
     "round": 19,
     "bossName": "💐 Vòng 19: Tri Ân Thầy Cô",
-    "question": "20.11 năm lớp 10 tụi mình đã tặng cho thầy cô những món quà gì?",
+    "question": "20.11 năm lớp 10 tụi mình đã tặng cho thầy cô những gì",
     "options": [
-      "Ly in hình lưu niệm",
       "Gia vị",
-      "Áo sơ mi Việt Tiến",
-      "Son MAC chính hãng"
+      "Ly in hình",
+      "Áo viettien",
+      "Son Mac"
     ],
     "answer": "Gia vị"
   },
   {
     "round": 20,
     "bossName": "👑 Vòng 20: Đại Hỗn Chiến A13",
-    "question": "Trong tiết học nào, lớp mình “quậy” tưng bừng nhiều nhất?",
+    "question": "Trong tiết học nào, lớp mình “quậy” nhiều nhất?",
     "options": [
-      "HDTN thầy Cường",
       "Toán thầy Lâm",
+      "HDTN thầy Cường",
       "Lý thầy Thông",
       "Sinh thầy Khoa"
     ],
