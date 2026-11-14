@@ -2,6 +2,7 @@
    📱 TRẬN CHIẾN A13 - LOGIC ĐIỀU KHIỂN TRÊN ĐIỆN THOẠI
    Tactile Arcade Gameplay with 3D Background & Sound
    Hỗ trợ khôi phục phiên khi rớt mạng / refresh mà không mất điểm
+   Bổ sung hiệu ứng Confetti, 3D Candy Kingdom & Haptic Touch
    ============================================================ */
 
 const socket = io({ reconnection: true });
@@ -25,6 +26,18 @@ let hasAnsweredCurrentRound = false;
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
+
+// ─── CONFETTI HIỆU ỨNG CHIẾN THẮNG TRÊN ĐIỆN THOẠI ───────────
+function triggerPlayerConfetti() {
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 55,
+      spread: 65,
+      origin: { y: 0.85 },
+      colors: ['#FF0A7B', '#FFD166', '#00A8E8', '#52B788', '#FF69B4', '#FFF']
+    });
+  }
+}
 
 // ─── CHỌN AVATAR ───────────────────────────────────────────
 function selectAvatar(emoji, btn) {
@@ -71,24 +84,25 @@ const SoundFX = {
   },
   tap() {
     initAudio();
-    playTone(520, 'triangle', 0.12, 0.2);
+    playTone(520, 'triangle', 0.12, 0.22);
     if (navigator.vibrate) {
-      navigator.vibrate(35);
+      navigator.vibrate(40);
     }
   },
   correct() {
     initAudio();
     if (!soundEnabled || !audioCtx) return;
     [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-      setTimeout(() => playTone(f, 'sine', 0.25, 0.2), i * 65);
+      setTimeout(() => playTone(f, 'sine', 0.25, 0.22), i * 65);
     });
     if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
   },
   wrong() {
     initAudio();
     if (!soundEnabled || !audioCtx) return;
-    playTone(240, 'sawtooth', 0.25, 0.15);
-    setTimeout(() => playTone(180, 'sawtooth', 0.35, 0.15), 140);
+    playTone(240, 'sawtooth', 0.25, 0.18);
+    setTimeout(() => playTone(180, 'sawtooth', 0.35, 0.18), 140);
+    if (navigator.vibrate) navigator.vibrate(150);
   },
   countdown() {
     initAudio();
@@ -109,52 +123,139 @@ function toggleAudio() {
   showToast(soundEnabled ? 'Đã bật âm thanh 🎵' : 'Đã tắt âm thanh 🔇');
 }
 
-// ─── 3D THREE.JS CANVAS NỀN ───────────────────────────────
-let scene, camera, renderer, candyGroup;
+// ─── 3D THREE.JS CANVAS NỀN HOÀNG GIA CHO ĐIỆN THOẠI ────────
+let scene, camera, renderer, candyGroup, stardustField;
+let touchStartX = 0, touchStartY = 0;
+let camTargetX = 0, camTargetY = 0;
 
 function initThreeWorld() {
   const canvas = document.getElementById('three-canvas');
   if (!canvas || typeof THREE === 'undefined') return;
 
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xFFD6E0, 0.035);
+  scene.fog = new THREE.FogExp2(0xFFD6E0, 0.032);
 
-  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 18;
+  camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 20;
 
   renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  const amb = new THREE.AmbientLight(0xFFFFFF, 0.85);
+  const amb = new THREE.AmbientLight(0xFFFFFF, 0.9);
   scene.add(amb);
 
-  const dir = new THREE.DirectionalLight(0xFFB3C6, 0.9);
-  dir.position.set(5, 10, 7);
+  const dir = new THREE.DirectionalLight(0xFFB3C6, 1.2);
+  dir.position.set(6, 12, 8);
   scene.add(dir);
+
+  const pinkLight = new THREE.PointLight(0xFF0A7B, 2.2, 40);
+  pinkLight.position.set(-8, 8, 10);
+  scene.add(pinkLight);
 
   candyGroup = new THREE.Group();
   scene.add(candyGroup);
 
-  const materials = [
-    new THREE.MeshStandardMaterial({ color: 0xFF69B4, roughness: 0.2 }),
-    new THREE.MeshStandardMaterial({ color: 0xFFD166, roughness: 0.2 }),
-    new THREE.MeshStandardMaterial({ color: 0xB7E4C7, roughness: 0.3 }),
-    new THREE.MeshStandardMaterial({ color: 0xA0C4FF, roughness: 0.3 })
-  ];
+  // 1. Bánh Donut 3D phủ kem
+  for (let i = 0; i < 6; i++) {
+    const dGroup = new THREE.Group();
+    const dGeo = new THREE.TorusGeometry(1.3, 0.52, 16, 32);
+    const dMat = new THREE.MeshStandardMaterial({ color: 0xF4A261, roughness: 0.5 });
+    const dough = new THREE.Mesh(dGeo, dMat);
+    dGroup.add(dough);
 
-  for (let i = 0; i < 12; i++) {
-    const geo = i % 2 === 0 ? new THREE.TorusGeometry(1.2, 0.5, 16, 32) : new THREE.OctahedronGeometry(0.9);
-    const mesh = new THREE.Mesh(geo, materials[i % materials.length]);
-    mesh.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 26, (Math.random() - 0.5) * 12);
-    mesh.userData = {
+    const gGeo = new THREE.TorusGeometry(1.32, 0.55, 14, 32, Math.PI * 1.85);
+    const gMat = new THREE.MeshStandardMaterial({
+      color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
+      roughness: 0.15,
+      metalness: 0.1
+    });
+    const glaze = new THREE.Mesh(gGeo, gMat);
+    glaze.position.z = 0.05;
+    dGroup.add(glaze);
+
+    dGroup.position.set((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 32, (Math.random() - 0.5) * 14);
+    dGroup.userData = {
       rx: (Math.random() - 0.5) * 0.015,
       ry: (Math.random() - 0.5) * 0.015,
-      speed: 0.5 + Math.random() * 0.5,
+      speed: 0.45 + Math.random() * 0.5,
       offset: Math.random() * Math.PI * 2
     };
-    candyGroup.add(mesh);
+    candyGroup.add(dGroup);
   }
+
+  // 2. Trái tim 3D Hồng Ngọt
+  const heartShape = new THREE.Shape();
+  heartShape.moveTo(0, 0.5);
+  heartShape.bezierCurveTo(0, 0.8, -0.6, 1.3, -1.2, 1.3);
+  heartShape.bezierCurveTo(-1.8, 1.3, -2.0, 0.8, -2.0, 0.3);
+  heartShape.bezierCurveTo(-2.0, -0.5, -1.2, -1.2, 0, -2.0);
+  heartShape.bezierCurveTo(1.2, -1.2, 2.0, -0.5, 2.0, 0.3);
+  heartShape.bezierCurveTo(2.0, 0.8, 1.8, 1.3, 1.2, 1.3);
+  heartShape.bezierCurveTo(0.6, 1.3, 0, 0.8, 0, 0.5);
+
+  const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.12, bevelThickness: 0.12 };
+  const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+  heartGeo.scale(0.48, 0.48, 0.48);
+
+  for (let i = 0; i < 7; i++) {
+    const heartMat = new THREE.MeshStandardMaterial({
+      color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
+      roughness: 0.12,
+      metalness: 0.2
+    });
+    const heart = new THREE.Mesh(heartGeo, heartMat);
+    heart.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 34, (Math.random() - 0.5) * 14);
+    heart.userData = {
+      rx: (Math.random() - 0.5) * 0.02,
+      ry: (Math.random() - 0.5) * 0.02,
+      speed: 0.6 + Math.random() * 0.4,
+      offset: Math.random() * Math.PI * 2
+    };
+    candyGroup.add(heart);
+  }
+
+  // 3. Kim Cương / Tinh Thể Kẹo Đường
+  for (let i = 0; i < 8; i++) {
+    const starGeo = new THREE.OctahedronGeometry(0.9 + Math.random() * 0.3);
+    const starMat = new THREE.MeshStandardMaterial({
+      color: i % 2 === 0 ? 0xFFD166 : 0x00A8E8,
+      roughness: 0.15,
+      metalness: 0.25
+    });
+    const star = new THREE.Mesh(starGeo, starMat);
+    star.position.set((Math.random() - 0.5) * 32, (Math.random() - 0.5) * 34, (Math.random() - 0.5) * 14);
+    star.userData = {
+      rx: (Math.random() - 0.5) * 0.02,
+      ry: (Math.random() - 0.5) * 0.02,
+      speed: 0.55 + Math.random() * 0.4,
+      offset: Math.random() * Math.PI * 2
+    };
+    candyGroup.add(star);
+  }
+
+  // 4. Bụi Sao Stardust Lấp Lánh
+  const pCount = 90;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount * 3; i += 3) {
+    pPos[i] = (Math.random() - 0.5) * 40;
+    pPos[i + 1] = (Math.random() - 0.5) * 45;
+    pPos[i + 2] = (Math.random() - 0.5) * 18;
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 0.28, transparent: true, opacity: 0.85 });
+  stardustField = new THREE.Points(pGeo, pMat);
+  scene.add(stardustField);
+
+  // Parallax cảm ứng vuốt nhẹ trên màn hình
+  window.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+      const t = e.touches[0];
+      camTargetX = ((t.clientX / window.innerWidth) - 0.5) * 2.2;
+      camTargetY = -((t.clientY / window.innerHeight) - 0.5) * 1.8;
+    }
+  }, { passive: true });
 
   window.addEventListener('resize', () => {
     if (!camera || !renderer) return;
@@ -167,11 +268,21 @@ function initThreeWorld() {
   function anim() {
     requestAnimationFrame(anim);
     t += 0.015;
+
+    camera.position.x += (camTargetX - camera.position.x) * 0.05;
+    camera.position.y += (camTargetY - camera.position.y) * 0.05;
+    camera.lookAt(0, 0, 0);
+
     candyGroup.children.forEach(m => {
       m.rotation.x += m.userData.rx;
       m.rotation.y += m.userData.ry;
-      m.position.y += Math.sin(t * m.userData.speed + m.userData.offset) * 0.012;
+      m.position.y += Math.sin(t * m.userData.speed + m.userData.offset) * 0.014;
     });
+
+    if (stardustField) {
+      stardustField.rotation.y += 0.0008;
+    }
+
     renderer.render(scene, camera);
   }
   anim();
@@ -180,7 +291,9 @@ function initThreeWorld() {
 function showScreen(id) {
   $$('.screen').forEach(s => s.classList.remove('active'));
   const target = $(`#${id}`);
-  if (target) target.classList.add('active');
+  if (target) {
+    target.classList.add('active');
+  }
 }
 
 function showToast(msg, duration = 3000) {
@@ -212,7 +325,6 @@ function joinRoom() {
   $('#btn-join').disabled = true;
   $('#btn-join').innerHTML = '⏳ ĐANG VÀO PHÒNG...';
 
-  // Lưu thông tin vào localStorage để nếu lỡ F5 hoặc rớt mạng sẽ tự vào lại
   localStorage.setItem('a13_player_name', name);
   localStorage.setItem('a13_player_avatar', myAvatar);
   localStorage.setItem('a13_password', password);
@@ -321,7 +433,13 @@ function updateLobbyPlayers(players) {
 // Đếm ngược 5s
 socket.on('game-countdown', (data) => {
   showScreen('screen-countdown');
-  $('#countdown-number').textContent = data.seconds;
+  const countNum = $('#countdown-number');
+  if (countNum) {
+    countNum.textContent = data.seconds;
+    countNum.classList.remove('pulse-countdown');
+    void countNum.offsetWidth;
+    countNum.classList.add('pulse-countdown');
+  }
   SoundFX.countdown();
 });
 
@@ -375,7 +493,6 @@ function submitChoice(btn, choiceValue) {
 
   SoundFX.tap();
 
-  // Khóa tất cả nút để tránh bấm nhiều lần
   $$('.option-candy-btn').forEach(b => {
     b.disabled = true;
     b.style.pointerEvents = 'none';
@@ -446,7 +563,8 @@ socket.on('answer-result', (data) => {
 
   if (data.isCorrect) {
     SoundFX.correct();
-    showToast(`🎯 ĐÚNG RỒI! +${data.points} Điểm (${data.timeSeconds}s)! 🌟`, 2500);
+    triggerPlayerConfetti();
+    showToast(`🎯 ĐÚNG RỒI! +${data.points} Điểm (${data.timeSeconds}s)! 🌟`, 2800);
   } else if (data.timeout) {
     SoundFX.wrong();
     showToast('⏰ Hết 10 giây! Không kịp nhận điểm.', 2500);
@@ -476,6 +594,7 @@ socket.on('round-end', (data) => {
     $('#result-icon').textContent = '🎉';
     $('#result-title').textContent = 'XUẤT SẮC!';
     $('#result-message').textContent = `Bạn nhận được +${roundPts} điểm trong vòng này!`;
+    triggerPlayerConfetti();
   } else {
     $('#result-icon').textContent = '💪';
     $('#result-title').textContent = 'TIẾC QUÁ!';
@@ -506,6 +625,7 @@ socket.on('game-over', (data) => {
   setTimeout(() => {
     showScreen('screen-results');
     SoundFX.fanfare();
+    triggerPlayerConfetti();
     renderPodium(data.finalRankings);
     renderFullRankings(data.finalRankings);
   }, 1200);
@@ -600,7 +720,6 @@ function escapeHtml(str) {
 document.addEventListener('DOMContentLoaded', () => {
   initThreeWorld();
 
-  // Nạp avatar đã lưu
   const savedAvatar = localStorage.getItem('a13_player_avatar');
   if (savedAvatar) {
     myAvatar = savedAvatar;
@@ -617,7 +736,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (savedName && $('#input-name')) $('#input-name').value = savedName;
   if (savedPass && $('#input-password')) $('#input-password').value = savedPass;
 
-  // Nếu người dùng đã từng vào phòng trước đó (có ID và Tên), tự động kết nối lại liền!
   if (savedName) {
     const btn = $('#btn-join');
     if (btn) btn.innerHTML = '🔄 ĐANG KHÔI PHỤC PHIÊN CHƠI...';

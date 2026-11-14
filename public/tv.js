@@ -1,6 +1,6 @@
 /* ============================================================
    📺 TRẬN CHIẾN A13 - LOGIC TIVI & 3D STUDIO CHUYÊN NGHIỆP
-   Three.js 3D PBR Shaders, Gameshow Audio & MC Control
+   Three.js 3D PBR Shaders, Candy Physics, Confetti & Sound FX
    ============================================================ */
 
 const socket = io({ reconnection: true });
@@ -10,7 +10,9 @@ let tvRoundTimer = null;
 let autoNextInterval = null;
 
 // Three.js Scene Variables
-let tvScene, tvCamera, tvRenderer, tvCandyGroup;
+let tvScene, tvCamera, tvRenderer, tvCandyGroup, stardustPoints;
+let mouseX = 0, mouseY = 0;
+let targetCameraX = 0, targetCameraY = 0;
 
 // ─── HỆ THỐNG ÂM THANH GAMESHOW TIVI (WEB AUDIO SYNTH) ───────
 function initTvAudio() {
@@ -43,7 +45,7 @@ const TvAudio = {
   joinChime() {
     initTvAudio();
     if (!tvSound || !tvAudioCtx) return;
-    [523.25, 659.25, 783.99].forEach((f, i) => setTimeout(() => playTvTone(f, 'sine', 0.2, 0.18), i * 60));
+    [523.25, 659.25, 783.99].forEach((f, i) => setTimeout(() => playTvTone(f, 'sine', 0.2, 0.22), i * 60));
   },
   tick() {
     initTvAudio();
@@ -51,11 +53,11 @@ const TvAudio = {
   },
   urgentTick() {
     initTvAudio();
-    playTvTone(880, 'square', 0.1, 0.25);
+    playTvTone(920, 'square', 0.12, 0.28);
   },
   ding() {
     initTvAudio();
-    playTvTone(1046.50, 'sine', 0.3, 0.3);
+    playTvTone(1046.50, 'sine', 0.35, 0.32);
   },
   fanfare() {
     initTvAudio();
@@ -68,8 +70,8 @@ const TvAudio = {
   grandVictory() {
     initTvAudio();
     if (!tvSound || !tvAudioCtx) return;
-    const melody = [523.25, 523.25, 523.25, 659.25, 783.99, 783.99, 1046.50];
-    const times = [0, 120, 240, 360, 520, 680, 880];
+    const melody = [523.25, 523.25, 523.25, 659.25, 783.99, 783.99, 1046.50, 1318.51];
+    const times = [0, 120, 240, 360, 520, 680, 880, 1100];
     melody.forEach((f, i) => setTimeout(() => playTvTone(f, 'triangle', 0.45, 0.35), times[i]));
   }
 };
@@ -85,73 +87,114 @@ function showTvScreen(id) {
   if (el) el.classList.add('active');
 }
 
+// ─── PHÁO HOA & CONFETTI HIỆU ỨNG ĐỈNH CAO ──────────────────
+function triggerConfetti() {
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 80,
+      spread: 80,
+      origin: { y: 0.6 },
+      colors: ['#FF0A7B', '#FFD166', '#00A8E8', '#52B788', '#FF69B4', '#FFF']
+    });
+  }
+}
+
+function triggerGrandPodiumFireworks() {
+  if (typeof confetti !== 'function') return;
+  const duration = 6 * 1000;
+  const animationEnd = Date.now() + duration;
+  const defaults = { startVelocity: 35, spread: 360, ticks: 70, zIndex: 99999 };
+
+  const interval = setInterval(function() {
+    const timeLeft = animationEnd - Date.now();
+    if (timeLeft <= 0) {
+      return clearInterval(interval);
+    }
+    const particleCount = 50 * (timeLeft / duration);
+
+    confetti(Object.assign({}, defaults, {
+      particleCount,
+      origin: { x: Math.random() * 0.4, y: Math.random() - 0.2 },
+      colors: ['#FF0A7B', '#FFD166', '#00A8E8', '#52B788', '#FFFFFF']
+    }));
+
+    confetti(Object.assign({}, defaults, {
+      particleCount,
+      origin: { x: 0.6 + Math.random() * 0.4, y: Math.random() - 0.2 },
+      colors: ['#FF0A7B', '#FFD166', '#00A8E8', '#52B788', '#FFFFFF']
+    }));
+  }, 220);
+}
+
 // ─── 3D THREE.JS CANDY ARENA HOÀNG GIA CHO TIVI ──────────────
 function initTvThree() {
   const canvas = document.getElementById('three-canvas');
   if (!canvas || typeof THREE === 'undefined') return;
 
   tvScene = new THREE.Scene();
-  tvScene.fog = new THREE.FogExp2(0xFFD6E0, 0.025);
+  tvScene.fog = new THREE.FogExp2(0xFFD6E0, 0.022);
 
-  tvCamera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-  tvCamera.position.set(0, 0, 22);
+  tvCamera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 1000);
+  tvCamera.position.set(0, 0, 24);
 
   tvRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
   tvRenderer.setSize(window.innerWidth, window.innerHeight);
   tvRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // Ánh sáng trường quay Gameshow
-  const ambLight = new THREE.AmbientLight(0xFFFFFF, 0.85);
+  // Ánh sáng trường quay Gameshow chuyên nghiệp
+  const ambLight = new THREE.AmbientLight(0xFFFFFF, 0.9);
   tvScene.add(ambLight);
 
-  const mainLight = new THREE.DirectionalLight(0xFFB3C6, 1.2);
-  mainLight.position.set(8, 12, 10);
+  const mainLight = new THREE.DirectionalLight(0xFFC2D1, 1.4);
+  mainLight.position.set(10, 15, 12);
   tvScene.add(mainLight);
 
-  const pinkPoint = new THREE.PointLight(0xFF0A7B, 2.5, 45);
-  pinkPoint.position.set(-10, 8, 12);
+  const pinkPoint = new THREE.PointLight(0xFF0A7B, 3.2, 50);
+  pinkPoint.position.set(-14, 10, 15);
   tvScene.add(pinkPoint);
 
-  const goldPoint = new THREE.PointLight(0xFFD166, 2, 45);
-  goldPoint.position.set(10, -8, 10);
+  const goldPoint = new THREE.PointLight(0xFFD166, 2.5, 45);
+  goldPoint.position.set(14, -10, 12);
   tvScene.add(goldPoint);
+
+  const cyanPoint = new THREE.PointLight(0x00A8E8, 1.8, 40);
+  cyanPoint.position.set(0, 16, 8);
+  tvScene.add(cyanPoint);
 
   tvCandyGroup = new THREE.Group();
   tvScene.add(tvCandyGroup);
 
   // 1. Tạo Bánh Donut 3D Phủ Kem Dâu & Rắc Đường Màu
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 9; i++) {
     const donutGroup = new THREE.Group();
-    // Bánh
-    const doughGeo = new THREE.TorusGeometry(1.5, 0.6, 20, 36);
-    const doughMat = new THREE.MeshStandardMaterial({ color: 0xF4A261, roughness: 0.6 });
+    const doughGeo = new THREE.TorusGeometry(1.6, 0.65, 20, 36);
+    const doughMat = new THREE.MeshStandardMaterial({ color: 0xF7A87A, roughness: 0.5 });
     const dough = new THREE.Mesh(doughGeo, doughMat);
     donutGroup.add(dough);
 
-    // Lớp kem dâu hồng bóng bẩy
-    const glazeGeo = new THREE.TorusGeometry(1.5, 0.63, 16, 36, Math.PI * 1.8);
+    const glazeGeo = new THREE.TorusGeometry(1.62, 0.68, 18, 36, Math.PI * 1.85);
     const glazeMat = new THREE.MeshStandardMaterial({
       color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
-      roughness: 0.15,
-      metalness: 0.1
+      roughness: 0.12,
+      metalness: 0.15
     });
     const glaze = new THREE.Mesh(glazeGeo, glazeMat);
-    glaze.position.z = 0.05;
+    glaze.position.z = 0.06;
     donutGroup.add(glaze);
 
     // Hạt đường rắc nhiều màu
-    const sprinkleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.25, 6);
+    const sprinkleGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.28, 6);
     const sprinkleColors = [0xFFFFFF, 0xFFD166, 0x52B788, 0x00A8E8, 0xFF4D94];
-    for (let s = 0; s < 14; s++) {
+    for (let s = 0; s < 16; s++) {
       const sMat = new THREE.MeshBasicMaterial({ color: sprinkleColors[s % sprinkleColors.length] });
       const sp = new THREE.Mesh(sprinkleGeo, sMat);
-      const angle = (s / 14) * Math.PI * 1.7;
-      sp.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0.65);
+      const angle = (s / 16) * Math.PI * 1.75;
+      sp.position.set(Math.cos(angle) * 1.62, Math.sin(angle) * 1.62, 0.72);
       sp.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
       donutGroup.add(sp);
     }
 
-    donutGroup.position.set((Math.random() - 0.5) * 38, (Math.random() - 0.5) * 26, (Math.random() - 0.5) * 14);
+    donutGroup.position.set((Math.random() - 0.5) * 44, (Math.random() - 0.5) * 28, (Math.random() - 0.5) * 16);
     donutGroup.userData = {
       rx: (Math.random() - 0.5) * 0.012,
       ry: (Math.random() - 0.5) * 0.012,
@@ -161,42 +204,131 @@ function initTvThree() {
     tvCandyGroup.add(donutGroup);
   }
 
-  // 2. Kẹo Kim Cương Đường Lấp Lánh
-  for (let i = 0; i < 10; i++) {
-    const starGeo = new THREE.OctahedronGeometry(1.1 + Math.random() * 0.4);
-    const starMat = new THREE.MeshStandardMaterial({
-      color: i % 2 === 0 ? 0xFFD166 : 0xFF8FAB,
+  // 2. Kẹo Mút Khổng Lồ (3D Swirl Lollipop)
+  for (let i = 0; i < 6; i++) {
+    const lolliGroup = new THREE.Group();
+    // Que kẹo
+    const stickGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.8, 16);
+    const stickMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.3 });
+    const stick = new THREE.Mesh(stickGeo, stickMat);
+    stick.position.y = -1.9;
+    lolliGroup.add(stick);
+
+    // Đầu kẹo xoắn ốc nhiều màu
+    const headGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.38, 32);
+    const headMat = new THREE.MeshStandardMaterial({
+      color: i % 2 === 0 ? 0xFF0A7B : 0xFFD166,
+      roughness: 0.15,
+      metalness: 0.1
+    });
+    const head = new THREE.Mesh(headGeo, headMat);
+    head.rotation.x = Math.PI / 2;
+    lolliGroup.add(head);
+
+    lolliGroup.position.set((Math.random() - 0.5) * 42, (Math.random() - 0.5) * 28, (Math.random() - 0.5) * 14);
+    lolliGroup.userData = {
+      rx: (Math.random() - 0.5) * 0.015,
+      ry: (Math.random() - 0.5) * 0.015,
+      speed: 0.5 + Math.random() * 0.4,
+      offset: Math.random() * Math.PI * 2
+    };
+    tvCandyGroup.add(lolliGroup);
+  }
+
+  // 3. Trái Tim 3D Dễ Thương (Extruded 3D Heart)
+  const heartShape = new THREE.Shape();
+  heartShape.moveTo(0, 0.5);
+  heartShape.bezierCurveTo(0, 0.8, -0.6, 1.3, -1.2, 1.3);
+  heartShape.bezierCurveTo(-1.8, 1.3, -2.0, 0.8, -2.0, 0.3);
+  heartShape.bezierCurveTo(-2.0, -0.5, -1.2, -1.2, 0, -2.0);
+  heartShape.bezierCurveTo(1.2, -1.2, 2.0, -0.5, 2.0, 0.3);
+  heartShape.bezierCurveTo(2.0, 0.8, 1.8, 1.3, 1.2, 1.3);
+  heartShape.bezierCurveTo(0.6, 1.3, 0, 0.8, 0, 0.5);
+
+  const extrudeSettings = { depth: 0.4, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.15, bevelThickness: 0.15 };
+  const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+  heartGeo.scale(0.55, 0.55, 0.55);
+
+  for (let i = 0; i < 8; i++) {
+    const heartMat = new THREE.MeshStandardMaterial({
+      color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
       roughness: 0.1,
       metalness: 0.2
     });
-    const star = new THREE.Mesh(starGeo, starMat);
-    star.position.set((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 28, (Math.random() - 0.5) * 15);
-    star.userData = {
+    const heart = new THREE.Mesh(heartGeo, heartMat);
+    heart.position.set((Math.random() - 0.5) * 46, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 16);
+    heart.userData = {
       rx: (Math.random() - 0.5) * 0.02,
       ry: (Math.random() - 0.5) * 0.02,
-      speed: 0.6 + Math.random() * 0.4,
+      speed: 0.6 + Math.random() * 0.5,
       offset: Math.random() * Math.PI * 2
     };
-    tvCandyGroup.add(star);
+    tvCandyGroup.add(heart);
   }
 
-  // 3. Kẹo Tròn Bonbon Pastel
-  for (let i = 0; i < 12; i++) {
-    const ballGeo = new THREE.SphereGeometry(0.8, 24, 24);
-    const ballMat = new THREE.MeshStandardMaterial({
-      color: [0xFF69B4, 0xB7E4C7, 0xA0C4FF, 0xFFE5EC][i % 4],
-      roughness: 0.25
+  // 4. Kẹo Gói Hai Đầu Xinh Xắn (Wrapped Candy)
+  for (let i = 0; i < 7; i++) {
+    const candyWrap = new THREE.Group();
+    // Viên kẹo giữa
+    const bodyGeo = new THREE.SphereGeometry(0.8, 20, 20);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: [0xFF69B4, 0x00A8E8, 0x52B788, 0xFFD166][i % 4],
+      roughness: 0.2
     });
-    const ball = new THREE.Mesh(ballGeo, ballMat);
-    ball.position.set((Math.random() - 0.5) * 42, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 16);
-    ball.userData = {
-      rx: 0.01,
-      ry: 0.01,
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.scale.set(1.2, 0.8, 0.8);
+    candyWrap.add(body);
+
+    // 2 đầu nếp gấp
+    const wingGeo = new THREE.ConeGeometry(0.55, 0.7, 10, 1, true);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.3, side: THREE.DoubleSide });
+
+    const wingL = new THREE.Mesh(wingGeo, wingMat);
+    wingL.rotation.z = Math.PI / 2;
+    wingL.position.x = -1.2;
+    candyWrap.add(wingL);
+
+    const wingR = new THREE.Mesh(wingGeo, wingMat);
+    wingR.rotation.z = -Math.PI / 2;
+    wingR.position.x = 1.2;
+    candyWrap.add(wingR);
+
+    candyWrap.position.set((Math.random() - 0.5) * 44, (Math.random() - 0.5) * 28, (Math.random() - 0.5) * 14);
+    candyWrap.userData = {
+      rx: (Math.random() - 0.5) * 0.015,
+      ry: (Math.random() - 0.5) * 0.015,
       speed: 0.5 + Math.random() * 0.5,
       offset: Math.random() * Math.PI * 2
     };
-    tvCandyGroup.add(ball);
+    tvCandyGroup.add(candyWrap);
   }
+
+  // 5. Đám Mây Hạt Bụi Ngôi Sao Lấp Lánh (Stardust Particles)
+  const stardustCount = 140;
+  const starGeo = new THREE.BufferGeometry();
+  const starPositions = new Float32Array(stardustCount * 3);
+  for (let i = 0; i < stardustCount * 3; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 55;
+    starPositions[i + 1] = (Math.random() - 0.5) * 35;
+    starPositions[i + 2] = (Math.random() - 0.5) * 20;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  const starMat = new THREE.PointsMaterial({
+    color: 0xFFFFFF,
+    size: 0.35,
+    transparent: true,
+    opacity: 0.8
+  });
+  stardustPoints = new THREE.Points(starGeo, starMat);
+  tvScene.add(stardustPoints);
+
+  // Parallax tương tác chuột
+  window.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+    targetCameraX = mouseX * 2.5;
+    targetCameraY = mouseY * 1.8;
+  });
 
   window.addEventListener('resize', () => {
     tvCamera.aspect = window.innerWidth / window.innerHeight;
@@ -207,12 +339,29 @@ function initTvThree() {
   let time = 0;
   function animate() {
     requestAnimationFrame(animate);
-    time += 0.014;
+    time += 0.015;
+
+    // Camera chuyển động mượt mà
+    tvCamera.position.x += (targetCameraX - tvCamera.position.x) * 0.04;
+    tvCamera.position.y += (targetCameraY - tvCamera.position.y) * 0.04;
+    tvCamera.lookAt(0, 0, 0);
+
+    // Đổi màu ánh sáng đèn trường quay theo nhịp thở
+    pinkPoint.intensity = 2.8 + Math.sin(time * 2) * 0.8;
+    goldPoint.intensity = 2.2 + Math.cos(time * 2.2) * 0.6;
+
+    // Xoay các vật phẩm kẹo ngọt
     tvCandyGroup.children.forEach(item => {
       item.rotation.x += item.userData.rx;
       item.rotation.y += item.userData.ry;
-      item.position.y += Math.sin(time * item.userData.speed + item.userData.offset) * 0.014;
+      item.position.y += Math.sin(time * item.userData.speed + item.userData.offset) * 0.016;
     });
+
+    if (stardustPoints) {
+      stardustPoints.rotation.y += 0.0006;
+      stardustPoints.rotation.x += 0.0004;
+    }
+
     tvRenderer.render(tvScene, tvCamera);
   }
   animate();
@@ -221,7 +370,6 @@ function initTvThree() {
 // ─── ĐIỀU KHIỂN SOCKET.IO VỚI SERVER ───────────────────────
 socket.on('connect', () => {
   socket.emit('register-tv');
-  // Hiển thị domain đang chạy
   const linkDisplay = document.getElementById('tv-link-display');
   if (linkDisplay) {
     linkDisplay.textContent = window.location.host;
@@ -236,6 +384,7 @@ socket.on('lobby-update', (data) => {
   updateTvPlayers(data.players);
   if (data.newPlayer) {
     TvAudio.joinChime();
+    triggerConfetti();
   }
 });
 
@@ -278,7 +427,13 @@ function tvResetGame() {
 // Đếm ngược 5s
 socket.on('game-countdown', (data) => {
   showTvScreen('tv-screen-countdown');
-  document.getElementById('tv-countdown-num').textContent = data.seconds;
+  const numEl = document.getElementById('tv-countdown-num');
+  if (numEl) {
+    numEl.textContent = data.seconds;
+    numEl.classList.remove('pulse-countdown');
+    void numEl.offsetWidth; // Trigger reflow
+    numEl.classList.add('pulse-countdown');
+  }
   TvAudio.tick();
 });
 
@@ -326,7 +481,7 @@ function startTvCountdownCircle(seconds) {
   const endTime = startTime + (seconds * 1000);
   const circle = document.getElementById('tv-timer-circle');
   const num = document.getElementById('tv-timer-num');
-  const circumference = 2 * Math.PI * 42; // r=42 -> ~264
+  const circumference = 2 * Math.PI * 42;
 
   if (tvRoundTimer) clearInterval(tvRoundTimer);
 
@@ -348,7 +503,16 @@ function startTvCountdownCircle(seconds) {
       }
     }
 
-    if (num) num.textContent = sec;
+    if (num) {
+      num.textContent = sec;
+      if (sec <= 3) {
+        num.style.color = '#FF0A7B';
+        num.style.transform = 'scale(1.2)';
+      } else {
+        num.style.color = '#D81B60';
+        num.style.transform = 'scale(1)';
+      }
+    }
 
     if (sec <= 3 && remainMs > 0 && Math.floor(remainMs / 100) % 10 === 0) {
       TvAudio.urgentTick();
@@ -365,6 +529,7 @@ socket.on('round-end', (data) => {
   if (tvRoundTimer) clearInterval(tvRoundTimer);
   showTvScreen('tv-screen-round-end');
   TvAudio.fanfare();
+  triggerConfetti();
 
   document.getElementById('tv-lb-round-num').textContent = data.roundIndex + 1;
   document.getElementById('tv-correct-ans-text').textContent = data.correctAnswer;
@@ -381,7 +546,7 @@ socket.on('round-end', (data) => {
   const list = document.getElementById('tv-lb-container');
   const medals = ['🥇', '🥈', '🥉'];
   list.innerHTML = data.leaderboard.map((p, i) => `
-    <div class="tv-race-card ${i === 0 ? 'rank-top1' : ''}">
+    <div class="tv-race-card ${i === 0 ? 'rank-top1' : ''}" style="animation-delay: ${i * 0.08}s">
       <div class="tv-race-left">
         <span class="tv-race-medal">${i < 3 ? medals[i] : `#${i + 1}`}</span>
         <span class="tv-race-avatar">${p.avatar || '🐰'}</span>
@@ -398,7 +563,7 @@ socket.on('round-end', (data) => {
   let nextSec = 7;
   const nextSecEl = document.getElementById('tv-next-sec');
   const nextFill = document.getElementById('tv-next-fill');
-  nextFill.style.width = '100%';
+  if (nextFill) nextFill.style.width = '100%';
 
   if (autoNextInterval) clearInterval(autoNextInterval);
   autoNextInterval = setInterval(() => {
@@ -419,6 +584,7 @@ socket.on('game-over', (data) => {
   if (autoNextInterval) clearInterval(autoNextInterval);
   showTvScreen('tv-screen-game-over');
   TvAudio.grandVictory();
+  triggerGrandPodiumFireworks();
 
   const showcase = document.getElementById('tv-podium-showcase');
   const top3 = data.finalRankings.slice(0, 3);
@@ -438,7 +604,7 @@ socket.on('game-over', (data) => {
     </div>
   `).join('');
 
-  // Tóm tắt giải thưởng
+  // Tóm tắt giải thưởng: 1 Nhất, 2 Nhì, 3 Ba
   const summary = document.getElementById('tv-awards-summary');
   summary.innerHTML = `
     <div class="tv-award-card">🥇 1 Giải Nhất: <strong>${escapeHtml(top3[0]?.name || '---')}</strong></div>
