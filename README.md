@@ -36,9 +36,9 @@ npm install
 ### Bước 2: Đặt mật khẩu phòng chơi
 Mở file `server.js`, tìm dòng:
 ```javascript
-const ROOM_PASSWORD = process.env.GAME_PASSWORD || 'candykingdom2026';
+const ROOM_PASSWORD = process.env.GAME_PASSWORD || 'ABC13';
 ```
-Thay `'candykingdom2026'` bằng mật khẩu bạn muốn.
+Thay `'ABC13'` bằng mật khẩu bạn muốn.
 
 Hoặc dùng biến môi trường:
 ```bash

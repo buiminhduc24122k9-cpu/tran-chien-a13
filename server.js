@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── CONFIG ────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-const ROOM_PASSWORD = process.env.GAME_PASSWORD || 'candykingdom2026';
+const ROOM_PASSWORD = process.env.GAME_PASSWORD || 'ABC13';
 const ROUND_COUNT = 5;
 const ROUND_TIME_LIMITS = [60, 75, 90, 90, 120]; // seconds per round
 const BASE_POINTS = [200, 300, 400, 500, 600];
