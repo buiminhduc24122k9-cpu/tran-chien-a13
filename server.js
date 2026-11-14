@@ -1,6 +1,6 @@
 /* ============================================================
-   ⚔️ TRẬN CHIẾN A13 (BATTLE OF A13) - TONE HỒNG & TV SPECTATOR
-   Server-side game engine with Socket.IO multiplayer
+   ⚔️ TRẬN CHIẾN A13 - PHIÊN BẢN STUDIO HOÀNG GIA 3D
+   Server-side: MC Laptop điều khiển độc quyền, Socket.IO real-time
    ============================================================ */
 
 const express = require('express');
@@ -27,9 +27,9 @@ app.get('/tv', (req, res) => {
 // ─── CONFIG ────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 const ROOM_PASSWORD = process.env.GAME_PASSWORD || 'ABC13';
-const TIME_LIMIT_SECONDS = 10; // Đúng 10s theo yêu cầu
+const TIME_LIMIT_SECONDS = 10; // 10 giây mỗi câu theo yêu cầu
 
-// ─── LOAD QUESTIONS FROM FILE (DỄ DÀNG CHỈNH SỬA) ───────────
+// ─── ĐỌC FILE CÂU HỎI TỰ ĐỘNG (DỄ DÀNG CHỈNH SỬA) ────────────
 function loadQuestions() {
   try {
     const qPath = path.join(__dirname, 'questions.json');
@@ -52,7 +52,8 @@ let gameState = {
   currentRound: 0,
   roundStartTime: null,
   roundTimer: null,
-  countdownTimer: null
+  countdownTimer: null,
+  tvConnected: false
 };
 
 function resetGame() {
@@ -62,7 +63,8 @@ function resetGame() {
     currentRound: 0,
     roundStartTime: null,
     roundTimer: null,
-    countdownTimer: null
+    countdownTimer: null,
+    tvConnected: gameState.tvConnected
   };
 }
 
@@ -70,7 +72,7 @@ function resetGame() {
 function calculateScore(timeMs, isCorrect) {
   if (!isCorrect) return 0;
   const timeSec = Math.min(10, Math.max(0, timeMs / 1000));
-  // Điểm tốc độ giảm từ 100đ về 0đ trong 10 giây
+  // Điểm tốc độ: tối đa 100đ, giảm đều theo mili-giây về 0đ trong 10 giây
   const speedBonus = Math.round(100 * Math.max(0, 1 - (timeSec / TIME_LIMIT_SECONDS)));
   return 100 + speedBonus; // Tổng từ 100đ đến 200đ
 }
@@ -81,10 +83,13 @@ function getLeaderboard() {
     .map(p => ({
       id: p.id,
       name: p.name,
+      avatar: p.avatar || '🐰',
       totalPoints: p.totalPoints,
       lastRoundPoints: p.lastRoundPoints || 0,
+      lastAnswerTime: p.lastAnswerTime || 0,
       roundScores: p.roundScores,
-      roundTimes: p.roundTimes
+      roundTimes: p.roundTimes,
+      isCorrectLast: p.isCorrectLast || false
     }))
     .sort((a, b) => {
       if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
@@ -95,9 +100,9 @@ function getLeaderboard() {
 
   sorted.forEach((p, i) => {
     p.rank = i + 1;
-    if (i === 0) p.prize = '🥇 Giải Nhất';
-    else if (i <= 2) p.prize = '🥈 Giải Nhì';
-    else if (i <= 5) p.prize = '🥉 Giải Ba';
+    if (i === 0) p.prize = '🥇 Quán Quân Vàng';
+    else if (i <= 2) p.prize = '🥈 Á Quân Bạc';
+    else if (i <= 5) p.prize = '🥉 Giải Ba Đồng';
     else p.prize = '🎖️ Chiến Binh A13';
   });
 
@@ -106,8 +111,9 @@ function getLeaderboard() {
 
 // ─── SOCKET.IO EVENTS ──────────────────────────────────────
 io.on('connection', (socket) => {
-  // Người chơi tham gia phòng từ điện thoại
-  socket.on('join-room', ({ playerName, password }) => {
+
+  // 1. NGƯỜI CHƠI THAM GIA PHÒNG TỪ ĐIỆN THOẠI (KHÔNG CÓ QUYỀN BẮT ĐẦU)
+  socket.on('join-room', ({ playerName, password, avatar }) => {
     if (!playerName || !playerName.trim()) {
       socket.emit('error-msg', { message: 'Vui lòng nhập tên của bạn!' });
       return;
@@ -131,14 +137,18 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const isHost = Object.keys(gameState.players).length === 0;
+    const cuteAvatars = ['🐰', '🐱', '🐻', '🐼', '🦊', '🦄', '🐥', '🍬', '🍓', '🍭', '🦁', '🐨', '🐯', '🐧'];
+    const chosenAvatar = avatar || cuteAvatars[Object.keys(gameState.players).length % cuteAvatars.length];
 
     gameState.players[socket.id] = {
       id: socket.id,
       name: playerName.trim(),
-      isHost,
+      avatar: chosenAvatar,
+      isHost: false, // NGƯỜI CHƠI KHÔNG BAO GIỜ LÀ HOST
       totalPoints: 0,
       lastRoundPoints: 0,
+      lastAnswerTime: 0,
+      isCorrectLast: false,
       roundScores: [],
       roundTimes: [],
       answeredThisRound: false
@@ -146,50 +156,56 @@ io.on('connection', (socket) => {
 
     const playerList = Object.values(gameState.players).map(p => ({
       name: p.name,
-      isHost: p.isHost
+      avatar: p.avatar
     }));
 
     socket.emit('room-joined', {
       players: playerList,
-      isHost,
-      playerName: playerName.trim()
+      playerName: playerName.trim(),
+      avatar: chosenAvatar
     });
 
+    // Thông báo cho Tivi và toàn bộ phòng
     io.emit('lobby-update', {
       players: playerList,
-      playerCount: playerList.length
+      playerCount: playerList.length,
+      newPlayer: { name: playerName.trim(), avatar: chosenAvatar }
     });
 
-    console.log(`👤 ${playerName.trim()} đã tham gia A13! Tổng: ${playerList.length}`);
+    console.log(`👤 ${playerName.trim()} (${chosenAvatar}) vào phòng A13. Tổng: ${playerList.length}`);
   });
 
-  // Màn hình Tivi kết nối
+  // 2. MÀN HÌNH TIVI (LAPTOP MC) KẾT NỐI - CÓ TOÀN QUYỀN ĐIỀU KHIỂN
   socket.on('register-tv', () => {
-    socket.join('tv-room');
+    socket.join('tv-control-room');
+    gameState.tvConnected = true;
+
     const playerList = Object.values(gameState.players).map(p => ({
       name: p.name,
-      isHost: p.isHost
+      avatar: p.avatar
     }));
+
     socket.emit('tv-init', {
       phase: gameState.phase,
       currentRound: gameState.currentRound,
       players: playerList,
       leaderboard: getLeaderboard()
     });
-    console.log('📺 Màn hình Tivi / Máy chiếu đã kết nối!');
+
+    console.log('📺 Màn hình Tivi / Laptop MC đã kết nối và nắm quyền điều hành!');
   });
 
-  // Host bấm Bắt đầu trận đấu
-  socket.on('host-start', () => {
-    const player = gameState.players[socket.id];
-    if (!player || !player.isHost) {
-      socket.emit('error-msg', { message: 'Chỉ có Chủ phòng mới có quyền bắt đầu!' });
+  // 3. CHỈ LAPTOP MỞ MÀN HÌNH TIVI MỚI CÓ QUYỀN BẮT ĐẦU TRÒ CHƠI!
+  socket.on('tv-start-game', () => {
+    QUESTIONS = loadQuestions(); // Cập nhật ngay câu hỏi mới nhất từ file
+    if (QUESTIONS.length === 0) {
+      socket.emit('error-msg', { message: 'Chưa có câu hỏi nào trong questions.json!' });
       return;
     }
 
-    QUESTIONS = loadQuestions(); // Tải lại câu hỏi mới nhất từ file nếu người dùng vừa sửa
-    if (QUESTIONS.length === 0) {
-      socket.emit('error-msg', { message: 'Chưa có câu hỏi nào trong questions.json!' });
+    const playerCount = Object.keys(gameState.players).length;
+    if (playerCount < 1) {
+      socket.emit('error-msg', { message: 'Cần ít nhất 1 bạn tham gia trên điện thoại để bắt đầu!' });
       return;
     }
 
@@ -209,10 +225,29 @@ io.on('connection', (socket) => {
       }
     }, 1000);
 
-    console.log('⚔️ Trận Chiến A13 bắt đầu!');
+    console.log(`⚔️ Laptop MC đã bấm Bắt Đầu Trận Chiến A13 với ${playerCount} người chơi!`);
   });
 
-  // Người chơi nộp đáp án trong vòng 10s
+  // 4. LAPTOP MC CHUYỂN SANG VÒNG KẾ TIẾP
+  socket.on('tv-next-round', () => {
+    if (gameState.phase !== 'ROUND_END') return;
+    if (gameState.currentRound < QUESTIONS.length - 1) {
+      startRound(gameState.currentRound + 1);
+    } else {
+      endGame();
+    }
+  });
+
+  // 5. LAPTOP MC RESET LÀM MỚI GAME
+  socket.on('tv-reset-game', () => {
+    if (gameState.roundTimer) clearTimeout(gameState.roundTimer);
+    if (gameState.countdownTimer) clearInterval(gameState.countdownTimer);
+    resetGame();
+    io.emit('game-reset', {});
+    console.log('🔄 Laptop MC đã Reset game!');
+  });
+
+  // 6. NGƯỜI CHƠI NỘP ĐÁP ÁN TRONG 10 GIÂY
   socket.on('submit-answer', ({ roundIndex, answer, timeMs }) => {
     const player = gameState.players[socket.id];
     if (!player || gameState.phase !== 'PLAYING') return;
@@ -225,71 +260,59 @@ io.on('connection', (socket) => {
     const isCorrect = (answer || '').trim() === currentQ.answer.trim();
     const points = calculateScore(timeMs, isCorrect);
 
+    player.isCorrectLast = isCorrect;
     player.lastRoundPoints = points;
+    player.lastAnswerTime = (timeMs / 1000).toFixed(2);
     player.totalPoints += points;
     player.roundScores[roundIndex] = points;
     player.roundTimes[roundIndex] = timeMs;
 
-    // Gửi kết quả về riêng người chơi đó
+    // Gửi kết quả về điện thoại của người chơi đó
     socket.emit('answer-result', {
       isCorrect,
       points,
       totalPoints: player.totalPoints,
-      correctAnswer: currentQ.answer
+      correctAnswer: currentQ.answer,
+      timeSeconds: player.lastAnswerTime
     });
 
-    // Cập nhật số người đã trả lời cho màn hình Tivi & mọi người
+    // Báo cho màn hình Tivi cập nhật số người đã trả lời & hiệu ứng nộp bài
     const totalPlayers = Object.keys(gameState.players).length;
     const answeredCount = Object.values(gameState.players).filter(p => p.answeredThisRound).length;
 
     io.emit('answered-progress', {
       answeredCount,
       totalPlayers,
-      justAnsweredName: player.name
+      justAnsweredName: player.name,
+      justAnsweredAvatar: player.avatar
     });
 
-    // Nếu tất cả người chơi đã trả lời xong trước 10s -> kết thúc vòng luôn
+    // Nếu TẤT CẢ người chơi đã nộp bài trước khi hết 10 giây -> Kết thúc vòng ngay lập tức!
     if (answeredCount >= totalPlayers) {
       endRound();
     }
   });
 
-  // Reset Game
-  socket.on('host-reset', () => {
-    if (gameState.roundTimer) clearTimeout(gameState.roundTimer);
-    if (gameState.countdownTimer) clearInterval(gameState.countdownTimer);
-    resetGame();
-    io.emit('game-reset', {});
-    console.log('🔄 Đã Reset Trận Chiến A13');
-  });
-
-  // Người chơi ngắt kết nối
+  // 7. NGẮT KẾT NỐI
   socket.on('disconnect', () => {
     const player = gameState.players[socket.id];
     if (player) {
-      const wasHost = player.isHost;
       delete gameState.players[socket.id];
-
-      const remaining = Object.values(gameState.players);
-      if (wasHost && remaining.length > 0) {
-        remaining[0].isHost = true;
-        io.to(remaining[0].id).emit('you-are-host', {});
-      }
-
-      const playerList = remaining.map(p => ({
+      const playerList = Object.values(gameState.players).map(p => ({
         name: p.name,
-        isHost: p.isHost
+        avatar: p.avatar
       }));
 
       io.emit('lobby-update', {
         players: playerList,
         playerCount: playerList.length
       });
+      console.log(`👋 ${player.name} đã rời phòng`);
     }
   });
 });
 
-// ─── QUẢN LÝ VÒNG ĐẤU 10 GIÂY ──────────────────────────────
+// ─── ĐIỀU HÀNH VÒNG ĐẤU 10 GIÂY ─────────────────────────────
 function startRound(roundIdx) {
   gameState.phase = 'PLAYING';
   gameState.currentRound = roundIdx;
@@ -305,11 +328,11 @@ function startRound(roundIdx) {
   Object.values(gameState.players).forEach(p => {
     p.answeredThisRound = false;
     p.lastRoundPoints = 0;
+    p.isCorrectLast = false;
   });
 
-  // Phát sóng câu hỏi cho màn hình Tivi và Điện thoại
-  // Giấu đáp án đúng
-  const qForClients = {
+  // Phát sóng câu hỏi cho màn hình Tivi và Điện thoại (giấu đáp án)
+  const qData = {
     roundIndex: roundIdx,
     totalRounds: QUESTIONS.length,
     bossName: currentQ.bossName || `Vòng ${roundIdx + 1}`,
@@ -318,17 +341,20 @@ function startRound(roundIdx) {
     timeLimit: TIME_LIMIT_SECONDS
   };
 
-  io.emit('round-start', qForClients);
+  io.emit('round-start', qData);
 
-  // Bộ đếm thời gian 10s
+  // Bộ đếm thời gian 10 giây
   gameState.roundTimer = setTimeout(() => {
-    // Xử lý những ai chưa trả lời khi hết 10s
+    // Xử lý những ai chưa trả lời khi hết giờ
     Object.values(gameState.players).forEach(p => {
       if (!p.answeredThisRound) {
         p.answeredThisRound = true;
+        p.isCorrectLast = false;
         p.lastRoundPoints = 0;
         p.roundScores[roundIdx] = 0;
         p.roundTimes[roundIdx] = TIME_LIMIT_SECONDS * 1000;
+        p.lastAnswerTime = TIME_LIMIT_SECONDS;
+
         io.to(p.id).emit('answer-result', {
           isCorrect: false,
           points: 0,
@@ -342,7 +368,7 @@ function startRound(roundIdx) {
     endRound();
   }, TIME_LIMIT_SECONDS * 1000);
 
-  console.log(`⏱️ Bắt đầu Vòng ${roundIdx + 1} (${TIME_LIMIT_SECONDS}s)!`);
+  console.log(`⏱️ Bắt đầu Vòng ${roundIdx + 1}/${QUESTIONS.length} (Thời gian: ${TIME_LIMIT_SECONDS}s)!`);
 }
 
 function endRound() {
@@ -355,28 +381,17 @@ function endRound() {
   const leaderboard = getLeaderboard();
   const currentQ = QUESTIONS[gameState.currentRound];
 
-  // Phát sóng bảng xếp hạng ngay lập tức cho Tivi và người chơi
+  // Phát sóng bảng xếp hạng ngay lập tức cho Tivi và Điện thoại
   io.emit('round-end', {
     roundIndex: gameState.currentRound,
     totalRounds: QUESTIONS.length,
     correctAnswer: currentQ ? currentQ.answer : '',
     leaderboard,
-    topPlayer: leaderboard[0] || null
+    topPlayer: leaderboard[0] || null,
+    isLastRound: gameState.currentRound >= QUESTIONS.length - 1
   });
 
-  console.log(`🏁 Kết thúc Vòng ${gameState.currentRound + 1}. Top 1 hiện tại: ${leaderboard[0]?.name} (${leaderboard[0]?.totalPoints}đ)`);
-
-  // Sau 7 giây nghỉ ngơi và xem bảng xếp hạng trên Tivi -> qua vòng tiếp theo
-  if (gameState.currentRound < QUESTIONS.length - 1) {
-    setTimeout(() => {
-      startRound(gameState.currentRound + 1);
-    }, 7000);
-  } else {
-    // Kết thúc toàn bộ trò chơi
-    setTimeout(() => {
-      endGame();
-    }, 4000);
-  }
+  console.log(`🏁 Kết thúc Vòng ${gameState.currentRound + 1}. Quán Quân hiện tại: ${leaderboard[0]?.name} (${leaderboard[0]?.totalPoints}đ)`);
 }
 
 function endGame() {
@@ -385,14 +400,15 @@ function endGame() {
   io.emit('game-over', {
     finalRankings
   });
-  console.log('🏆 Trận Chiến A13 kết thúc! Vinh danh nhà vô địch!');
+  console.log('🏆 Trận Chiến A13 kết thúc! Vinh quang thuộc về người xuất sắc nhất!');
 }
 
 // ─── START SERVER ──────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log(`\n💖 ═══════════════════════════════════════════`);
-  console.log(`   ⚔️ TRẬN CHIẾN A13 - TONE HỒNG HOÀNG GIA`);
+  console.log(`\n💖 ═════════════════════════════════════════════════════════`);
+  console.log(`   ⚔️ TRẬN CHIẾN A13 - PHIÊN BẢN STUDIO HOÀNG GIA 3D`);
   console.log(`   Cổng: ${PORT} | Mật khẩu: ${ROOM_PASSWORD}`);
-  console.log(`   Màn hình Tivi: http://localhost:${PORT}/tv`);
-  console.log(`💖 ═══════════════════════════════════════════\n`);
+  console.log(`   💻 MÀN HÌNH TIVI (MC ĐIỀU KHIỂN): http://localhost:${PORT}/tv`);
+  console.log(`   📱 ĐIỆN THOẠI NGƯỜI CHƠI:        http://localhost:${PORT}`);
+  console.log(`💖 ═════════════════════════════════════════════════════════\n`);
 });

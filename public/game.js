@@ -1,15 +1,14 @@
 /* ============================================================
-   ⚔️ TRẬN CHIẾN A13 - CLIENT GAME LOGIC
-   10s Fast-Paced Gameplay with Live Points Degradation
+   📱 TRẬN CHIẾN A13 - LOGIC ĐIỀU KHIỂN TRÊN ĐIỆN THOẠI
+   Tactile Arcade Gameplay with 3D Background & Sound
    ============================================================ */
 
 const socket = io({ reconnection: true });
 
-// Game State
+// Trạng thái cục bộ
 let myName = '';
-let isHost = false;
+let myAvatar = '🐰';
 let currentRound = 0;
-let currentPuzzle = null;
 let roundStartTime = 0;
 let timerInterval = null;
 let totalPoints = 0;
@@ -20,7 +19,17 @@ let hasAnsweredCurrentRound = false;
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-// ─── ÂM THANH WEB AUDIO SYNTH ──────────────────────────────
+// ─── CHỌN AVATAR ───────────────────────────────────────────
+function selectAvatar(emoji, btn) {
+  myAvatar = emoji;
+  $('#current-chosen-avatar').textContent = emoji;
+  $$('.avatar-choice-btn').forEach(b => b.classList.remove('selected'));
+  if (btn) btn.classList.add('selected');
+  initAudio();
+  SoundFX.pop();
+}
+
+// ─── ÂM THANH WEB AUDIO SYNTH CHO ĐIỆN THOẠI ───────────────
 function initAudio() {
   if (!audioCtx) {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -31,7 +40,7 @@ function initAudio() {
   }
 }
 
-function playTone(freq, type = 'sine', duration = 0.2, gainVal = 0.2) {
+function playTone(freq, type = 'sine', duration = 0.18, gainVal = 0.2) {
   if (!soundEnabled || !audioCtx) return;
   try {
     const osc = audioCtx.createOscillator();
@@ -48,32 +57,41 @@ function playTone(freq, type = 'sine', duration = 0.2, gainVal = 0.2) {
 }
 
 const SoundFX = {
+  pop() {
+    initAudio();
+    playTone(600, 'sine', 0.08, 0.15);
+  },
   tap() {
     initAudio();
-    playTone(550, 'sine', 0.08, 0.15);
+    playTone(520, 'triangle', 0.12, 0.2);
+    // Haptic vibration trên điện thoại
+    if (navigator.vibrate) {
+      navigator.vibrate(35);
+    }
   },
   correct() {
     initAudio();
     if (!soundEnabled || !audioCtx) return;
     [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-      setTimeout(() => playTone(f, 'sine', 0.25, 0.2), i * 70);
+      setTimeout(() => playTone(f, 'sine', 0.25, 0.2), i * 65);
     });
+    if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
   },
   wrong() {
     initAudio();
     if (!soundEnabled || !audioCtx) return;
-    playTone(220, 'sawtooth', 0.25, 0.15);
-    setTimeout(() => playTone(165, 'sawtooth', 0.35, 0.15), 150);
+    playTone(240, 'sawtooth', 0.25, 0.15);
+    setTimeout(() => playTone(180, 'sawtooth', 0.35, 0.15), 140);
   },
   countdown() {
     initAudio();
-    playTone(440, 'triangle', 0.12, 0.2);
+    playTone(440, 'triangle', 0.12, 0.18);
   },
   fanfare() {
     initAudio();
     if (!soundEnabled || !audioCtx) return;
     const notes = [523.25, 659.25, 783.99, 1046.50];
-    notes.forEach((f, i) => setTimeout(() => playTone(f, 'triangle', 0.3, 0.25), i * 120));
+    notes.forEach((f, i) => setTimeout(() => playTone(f, 'triangle', 0.3, 0.25), i * 110));
   }
 };
 
@@ -83,7 +101,7 @@ function toggleAudio() {
   showToast(soundEnabled ? 'Đã bật âm thanh 🎵' : 'Đã tắt âm thanh 🔇');
 }
 
-// ─── 3D THREE.JS CANVAS NỀN ──────────────────────────────
+// ─── 3D THREE.JS CANVAS NỀN ───────────────────────────────
 let scene, camera, renderer, candyGroup;
 
 function initThreeWorld() {
@@ -112,13 +130,12 @@ function initThreeWorld() {
 
   const materials = [
     new THREE.MeshStandardMaterial({ color: 0xFF69B4, roughness: 0.2 }),
-    new THREE.MeshStandardMaterial({ color: 0xFFB3C6, roughness: 0.3 }),
     new THREE.MeshStandardMaterial({ color: 0xFFD166, roughness: 0.2 }),
     new THREE.MeshStandardMaterial({ color: 0xB7E4C7, roughness: 0.3 }),
     new THREE.MeshStandardMaterial({ color: 0xA0C4FF, roughness: 0.3 })
   ];
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 12; i++) {
     const geo = i % 2 === 0 ? new THREE.TorusGeometry(1.2, 0.5, 16, 32) : new THREE.OctahedronGeometry(0.9);
     const mesh = new THREE.Mesh(geo, materials[i % materials.length]);
     mesh.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 26, (Math.random() - 0.5) * 12);
@@ -152,21 +169,6 @@ function initThreeWorld() {
   anim();
 }
 
-function initParticles() {
-  const container = $('#particles-bg');
-  const emojis = ['🍬', '🍭', '💖', '✨', '🍓', '🎀', '🌸', '👑', '⚡'];
-  for (let i = 0; i < 16; i++) {
-    const p = document.createElement('div');
-    p.className = 'floating-particle';
-    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    p.style.left = `${Math.random() * 95}%`;
-    p.style.fontSize = `${1.2 + Math.random() * 1.3}rem`;
-    p.style.animationDuration = `${10 + Math.random() * 12}s`;
-    p.style.animationDelay = `${Math.random() * 8}s`;
-    container.appendChild(p);
-  }
-}
-
 function showScreen(id) {
   $$('.screen').forEach(s => s.classList.remove('active'));
   const target = $(`#${id}`);
@@ -184,7 +186,7 @@ function showToast(msg, duration = 3000) {
 // ─── ĐĂNG NHẬP VÀO PHÒNG ──────────────────────────────────
 function joinRoom() {
   initAudio();
-  SoundFX.tap();
+  SoundFX.pop();
 
   const name = $('#input-name').value.trim();
   const password = $('#input-password').value.trim();
@@ -201,7 +203,7 @@ function joinRoom() {
   $('#btn-join').disabled = true;
   $('#btn-join').innerHTML = '⏳ ĐANG VÀO PHÒNG...';
 
-  socket.emit('join-room', { playerName: name, password });
+  socket.emit('join-room', { playerName: name, password, avatar: myAvatar });
 }
 
 function showError(msg) {
@@ -212,36 +214,22 @@ function showError(msg) {
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
-// ─── SOCKET.IO LẮNG NGHE SỰ KIỆN ───────────────────────────
+// ─── LẮNG NGHE SỰ KIỆN TỪ SERVER ───────────────────────────
 socket.on('room-joined', (data) => {
   myName = data.playerName;
-  isHost = data.isHost;
+  myAvatar = data.avatar;
 
   showScreen('screen-lobby');
+  $('#lounge-my-avatar').textContent = myAvatar;
+  $('#lounge-my-name').textContent = myName;
+
   updateLobbyPlayers(data.players);
-
-  if (isHost) {
-    $('#host-controls').style.display = 'block';
-    $('#player-waiting').style.display = 'none';
-  } else {
-    $('#host-controls').style.display = 'none';
-    $('#player-waiting').style.display = 'block';
-  }
-
   SoundFX.correct();
-  showToast(`Chào mừng ${myName} vào Trận Chiến A13! 👑`);
+  showToast(`Chào mừng ${myName}! Đã sẵn sàng! 👑`);
 });
 
 socket.on('lobby-update', (data) => {
   updateLobbyPlayers(data.players);
-});
-
-socket.on('you-are-host', () => {
-  isHost = true;
-  $('#host-controls').style.display = 'block';
-  $('#player-waiting').style.display = 'none';
-  SoundFX.fanfare();
-  showToast('👑 Bạn là Chủ Phòng!');
 });
 
 function updateLobbyPlayers(players) {
@@ -251,31 +239,15 @@ function updateLobbyPlayers(players) {
   if (!container) return;
   container.innerHTML = '';
 
-  const cuteAvatars = ['🐰', '🐱', '🐻', '🐼', '🦊', '🦄', '🐥', '🍬', '🍓', '🍭'];
-  players.forEach((p, idx) => {
+  players.forEach(p => {
     const bubble = document.createElement('div');
-    bubble.className = `player-bubble ${p.isHost ? 'host' : ''}`;
-    const avatar = p.isHost ? '👑' : cuteAvatars[idx % cuteAvatars.length];
+    bubble.className = 'player-bubble';
     bubble.innerHTML = `
-      <div class="player-avatar">${avatar}</div>
+      <div class="player-avatar">${p.avatar || '🐰'}</div>
       <div class="player-name">${escapeHtml(p.name)}</div>
     `;
     container.appendChild(bubble);
   });
-}
-
-function hostStart() {
-  initAudio();
-  SoundFX.tap();
-  socket.emit('host-start');
-  $('#btn-start').disabled = true;
-  $('#btn-start').innerHTML = '⏳ ĐANG KHỞI TRANH...';
-}
-
-function hostReset() {
-  initAudio();
-  SoundFX.tap();
-  socket.emit('host-reset');
 }
 
 // Đếm ngược 5s
@@ -285,10 +257,9 @@ socket.on('game-countdown', (data) => {
   SoundFX.countdown();
 });
 
-// Bắt đầu vòng 10 giây
+// Bắt đầu vòng đấu 10 giây
 socket.on('round-start', (data) => {
   currentRound = data.roundIndex;
-  currentPuzzle = data;
   hasAnsweredCurrentRound = false;
 
   showScreen('screen-game');
@@ -300,12 +271,12 @@ socket.on('round-start', (data) => {
   $('#answered-waiting-msg').style.display = 'none';
   $('#answer-area').style.display = 'flex';
 
-  renderPhoneOptions(data.options);
+  renderPhoneButtons(data.options);
   startTimer(data.timeLimit || 10);
 });
 
-// Render 4 nút chọn A B C D siêu to trên điện thoại
-function renderPhoneOptions(options) {
+// Render 4 nút chọn A, B, C, D to bự
+function renderPhoneButtons(options) {
   const container = $('#answer-area');
   const letters = ['A', 'B', 'C', 'D'];
   const colors = ['#FF5A5F', '#00A8E8', '#FFB703', '#FF0A7B'];
@@ -318,15 +289,14 @@ function renderPhoneOptions(options) {
   `).join('');
 }
 
-// 1 Chạm trả lời ngay
+// Bấm nộp bài 1 chạm
 function submitChoice(btn, choiceValue) {
   if (hasAnsweredCurrentRound) return;
   hasAnsweredCurrentRound = true;
 
-  initAudio();
   SoundFX.tap();
 
-  // Khóa tất cả nút
+  // Khóa tất cả nút để tránh bấm nhiều lần
   $$('.option-candy-btn').forEach(b => {
     b.disabled = true;
     b.style.pointerEvents = 'none';
@@ -341,10 +311,11 @@ function submitChoice(btn, choiceValue) {
     timeMs
   });
 
+  $('#submitted-time-val').textContent = `${(timeMs / 1000).toFixed(2)}s`;
   $('#answered-waiting-msg').style.display = 'block';
 }
 
-// Đồng hồ đếm lùi 10s & Giảm điểm trực tiếp
+// Đồng hồ 10s & Giảm điểm trực tiếp
 function startTimer(seconds) {
   roundStartTime = Date.now();
   const endTime = roundStartTime + (seconds * 1000);
@@ -366,7 +337,7 @@ function startTimer(seconds) {
     timerBar.style.width = `${pct}%`;
     timerText.textContent = `${sec}s`;
 
-    // Điểm thưởng giảm từ 100đ về 0đ trong 10s -> Tổng điểm từ 200đ về 100đ
+    // Điểm thưởng giảm dần từ 200đ về 100đ trong 10s
     const speedRatio = Math.max(0, remainMs / (seconds * 1000));
     const currentPotential = 100 + Math.round(100 * speedRatio);
     if (potentialEl) potentialEl.textContent = currentPotential;
@@ -378,7 +349,7 @@ function startTimer(seconds) {
         $$('.option-candy-btn').forEach(b => b.disabled = true);
       }
     }
-  }, 80);
+  }, 75);
 }
 
 function stopTimer() {
@@ -396,13 +367,13 @@ socket.on('answer-result', (data) => {
 
   if (data.isCorrect) {
     SoundFX.correct();
-    showToast(`🎯 ĐÚNG RỒI! +${data.points} Điểm! 🌟`, 2500);
+    showToast(`🎯 ĐÚNG RỒI! +${data.points} Điểm (${data.timeSeconds}s)! 🌟`, 2500);
   } else if (data.timeout) {
     SoundFX.wrong();
     showToast('⏰ Hết 10 giây! Không kịp nhận điểm.', 2500);
   } else {
     SoundFX.wrong();
-    showToast(`❌ Chưa chính xác! Đáp án đúng: ${data.correctAnswer}`, 3500);
+    showToast(`❌ Chưa đúng! Đáp án đúng: ${data.correctAnswer}`, 3500);
   }
 });
 
@@ -418,14 +389,18 @@ socket.on('round-end', (data) => {
   $('#result-points').textContent = `+${roundPts}`;
   $('#result-total').textContent = myResult?.totalPoints || 0;
 
+  if (myResult) {
+    $('#my-current-rank-tag').innerHTML = `Vị trí hiện tại: <strong>#${myResult.rank}</strong> trên Bảng Vàng (${myResult.prize})`;
+  }
+
   if (roundPts > 0) {
     $('#result-icon').textContent = '🎉';
     $('#result-title').textContent = 'XUẤT SẮC!';
-    $('#result-message').textContent = `Bạn nhận được ${roundPts} điểm trong vòng này!`;
+    $('#result-message').textContent = `Bạn nhận được +${roundPts} điểm trong vòng này!`;
   } else {
     $('#result-icon').textContent = '💪';
-    $('#result-title').textContent = 'CỐ LÊN NHÉ!';
-    $('#result-message').textContent = 'Vòng sau hãy bấm thật nhanh để bứt phá nhé!';
+    $('#result-title').textContent = 'TIẾC QUÁ!';
+    $('#result-message').textContent = 'Hãy nhìn Tivi xem đáp án đúng và bứt phá vòng sau nhé!';
   }
 
   renderMiniLeaderboard(data.leaderboard);
@@ -433,13 +408,11 @@ socket.on('round-end', (data) => {
   // Đếm lùi 7s
   if (data.roundIndex < data.totalRounds - 1) {
     let nextSec = 7;
-    $('#next-round-countdown').textContent = nextSec;
     const barFill = $('#next-round-bar-fill');
     barFill.style.width = '100%';
 
     const nextTimer = setInterval(() => {
       nextSec--;
-      $('#next-round-countdown').textContent = nextSec;
       barFill.style.width = `${(nextSec / 7) * 100}%`;
       if (nextSec <= 0) clearInterval(nextTimer);
     }, 1000);
@@ -455,10 +428,6 @@ socket.on('game-over', (data) => {
     SoundFX.fanfare();
     renderPodium(data.finalRankings);
     renderFullRankings(data.finalRankings);
-
-    if (isHost) {
-      $('#final-host-controls').style.display = 'block';
-    }
   }, 1200);
 });
 
@@ -473,13 +442,12 @@ socket.on('error-msg', (data) => {
   if (document.querySelector('.screen.active')?.id === 'screen-login') {
     showError(data.message);
     $('#btn-join').disabled = false;
-    $('#btn-join').innerHTML = '🚀 VÀO GIAO ĐẤU NGAY!';
+    $('#btn-join').innerHTML = '🚀 VÀO PHÒNG ĐẤU A13!';
   } else {
     showToast(data.message);
   }
 });
 
-// Render Bảng xếp hạng mini giữa các vòng
 function renderMiniLeaderboard(rankings) {
   const container = $('#leaderboard-round');
   if (!container) return;
@@ -492,7 +460,7 @@ function renderMiniLeaderboard(rankings) {
       <div class="lb-row ${isSelf ? 'self' : ''}">
         <div class="lb-left">
           <span class="lb-medal">${medal}</span>
-          <span>${escapeHtml(p.name)}${isSelf ? ' (Bạn)' : ''}</span>
+          <span>${p.avatar || '🐰'} ${escapeHtml(p.name)}${isSelf ? ' (Bạn)' : ''}</span>
         </div>
         <div><strong>${p.totalPoints}</strong> ⭐</div>
       </div>
@@ -500,7 +468,6 @@ function renderMiniLeaderboard(rankings) {
   }).join('');
 }
 
-// Render Podium
 function renderPodium(rankings) {
   const podium = $('#podium');
   if (!podium) return;
@@ -508,13 +475,13 @@ function renderPodium(rankings) {
   const top3 = rankings.slice(0, 3);
   const displaySlots = [];
   if (top3[1]) displaySlots.push({ ...top3[1], podiumRank: 2, class: 'podium-rank-2', crown: '🥈' });
-  if (top3[0]) displaySlots.push({ ...top3[0], podiumRank: 1, class: 'podium-rank-1', crown: '👑🥇' });
+  if (top3[0]) displaySlots.push({ ...top3[0], podiumRank: 1, class: 'podium-rank-1', crown: '👑 🥇' });
   if (top3[2]) displaySlots.push({ ...top3[2], podiumRank: 3, class: 'podium-rank-3', crown: '🥉' });
 
   podium.innerHTML = displaySlots.map(p => `
     <div class="podium-pillar">
       <div class="podium-crown">${p.crown}</div>
-      <div class="podium-player-name">${escapeHtml(p.name)}</div>
+      <div class="podium-player-name">${p.avatar || '🐰'} ${escapeHtml(p.name)}</div>
       <div class="podium-player-score">${p.totalPoints}⭐</div>
       <div class="podium-block ${p.class}">${p.podiumRank}</div>
     </div>
@@ -535,7 +502,7 @@ function renderFullRankings(rankings) {
     return `
       <tr class="${isSelf ? 'my-rank' : ''}">
         <td><strong>#${p.rank}</strong></td>
-        <td>${escapeHtml(p.name)}${isSelf ? ' 👈' : ''}</td>
+        <td>${p.avatar || '🐰'} ${escapeHtml(p.name)}${isSelf ? ' 👈' : ''}</td>
         <td><strong>${p.totalPoints}</strong> ⭐</td>
         <td><span class="prize-pill ${pillClass}">${p.prize}</span></td>
       </tr>
@@ -552,7 +519,6 @@ function escapeHtml(str) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initThreeWorld();
-  initParticles();
   showScreen('screen-login');
 
   $('#input-password')?.addEventListener('keydown', (e) => {

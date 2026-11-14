@@ -6,232 +6,247 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#FF69B4">
-  <title>⚔️ Trận Chiến A13 💖</title>
+  <title>📱 TRẬN CHIẾN A13 - TAY CẦM THI ĐẤU</title>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body class="candy-theme">
+<body class="mobile-body">
 
-  <!-- 3D Background Canvas -->
+  <!-- 3D Three.js Background Canvas -->
   <canvas id="three-canvas"></canvas>
-  <div id="particles-bg"></div>
 
-  <!-- Nút âm thanh -->
+  <!-- Nút Âm Thanh Góc Màn Hình -->
   <button id="btn-sound-toggle" class="sound-toggle-btn" onclick="toggleAudio()" aria-label="Bật/Tắt âm thanh">
     <span id="sound-icon">🔊</span>
   </button>
 
-  <!-- Container chữ sát thương/điểm bay -->
-  <div id="damage-container" class="damage-container"></div>
+  <div class="mobile-app-wrapper">
 
-  <!-- ═══ MÀN HÌNH 1: ĐĂNG NHẬP (LOGIN) ═══ -->
-  <div id="screen-login" class="screen active">
-    <div class="candy-container">
-      <div class="logo-area">
-        <div class="mascot-3d-bubble">
-          <span class="giant-candy-emoji bounce-3d">⚔️💖✨</span>
-        </div>
-        <h1 class="game-title">TRẬN CHIẾN A13</h1>
-        <h2 class="game-subtitle">👑 ĐẠI ĐẤU TRƯỜNG TRANH CÚP VÀNG 👑</h2>
-        <p class="game-tagline">10 Giây Thần Tốc • Nhanh Tay Ăn Trọn Điểm Tối Đa</p>
-      </div>
-
-      <div class="login-card candy-card glow-card">
-        <div class="input-group">
-          <label for="input-name">🎀 Tên / Biệt danh của bạn:</label>
-          <input type="text" id="input-name" placeholder="Ví dụ: Minh Đức, Bảo Anh..." maxlength="18" autocomplete="off">
+    <!-- ═══ MÀN HÌNH 1: ĐĂNG NHẬP & CHỌN AVATAR (LOGIN) ═══ -->
+    <div id="screen-login" class="screen active">
+      <div class="candy-container">
+        
+        <div class="logo-area">
+          <div class="mascot-3d-bubble pulse-glow">
+            <span class="giant-candy-emoji" id="current-chosen-avatar">🐰</span>
+          </div>
+          <h1 class="game-title">TRẬN CHIẾN A13</h1>
+          <h2 class="game-subtitle">💖 TAY CẦM THI ĐẤU TRỰC TIẾP 💖</h2>
+          <p class="game-tagline">10 Giây Thần Tốc • Bấm Càng Nhanh Điểm Càng Cao</p>
         </div>
 
-        <div class="input-group">
-          <label for="input-password">🔑 Mật Khẩu Phòng:</label>
-          <input type="text" id="input-password" placeholder="Nhập ABC13..." autocomplete="off">
+        <div class="login-card candy-card glow-card">
+          <!-- Chọn Avatar Chibi Yêu Thích -->
+          <div class="avatar-select-section">
+            <label class="section-label">✨ Chọn linh vật của bạn:</label>
+            <div class="avatar-picker-grid" id="avatar-picker">
+              <button type="button" class="avatar-choice-btn selected" onclick="selectAvatar('🐰', this)">🐰</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🐱', this)">🐱</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🐻', this)">🐻</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🦊', this)">🦊</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🦄', this)">🦄</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🐥', this)">🐥</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🍓', this)">🍓</button>
+              <button type="button" class="avatar-choice-btn" onclick="selectAvatar('🍬', this)">🍬</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="input-name">🎀 Tên / Biệt danh của bạn:</label>
+            <input type="text" id="input-name" placeholder="Ví dụ: Minh Đức, Bảo Anh..." maxlength="16" autocomplete="off">
+          </div>
+
+          <div class="input-group">
+            <label for="input-password">🔑 Mật Khẩu Phòng:</label>
+            <input type="text" id="input-password" placeholder="Nhập ABC13..." autocomplete="off">
+          </div>
+
+          <button id="btn-join" class="candy-btn candy-btn-primary candy-btn-large" onclick="joinRoom()">
+            🚀 VÀO PHÒNG ĐẤU A13!
+          </button>
+
+          <div id="login-error" class="error-msg" style="display:none;"></div>
         </div>
 
-        <button id="btn-join" class="candy-btn candy-btn-primary candy-btn-large bounce-hover" onclick="joinRoom()">
-          🚀 VÀO GIAO ĐẤU NGAY!
-        </button>
+        <div class="info-badges">
+          <span class="badge">🌸 Tone Hồng A13</span>
+          <span class="badge">⏱️ 10 Giây/Câu</span>
+          <span class="badge">📺 Chiếu Tivi Lớn</span>
+          <span class="badge">🏆 Tranh Cúp Vàng</span>
+        </div>
 
-        <div id="login-error" class="error-msg" style="display:none;"></div>
-      </div>
-
-      <div class="info-badges">
-        <span class="badge">🌸 Tone Hồng A13</span>
-        <span class="badge">⏱️ 10 Giây Mỗi Câu</span>
-        <span class="badge">📺 Chiếu Tivi Trực Tiếp</span>
-        <span class="badge">🏆 Top 1-2-3 Nhận Giải</span>
       </div>
     </div>
-  </div>
 
-  <!-- ═══ MÀN HÌNH 2: PHÒNG CHỜ (LOBBY) ═══ -->
-  <div id="screen-lobby" class="screen">
-    <div class="candy-container">
-      <div class="lobby-header">
-        <div class="castle-emoji floating-slow">🏰</div>
-        <h1>PHÒNG CHỜ A13</h1>
-        <p class="lobby-subtitle">Hãy nhìn lên màn hình Tivi lớn để xem toàn bộ danh sách!</p>
-      </div>
-
-      <div class="lobby-info candy-card glow-card">
-        <div class="player-count-display">
-          <span class="count-number" id="lobby-count">0</span>
-          <span class="count-label">Chiến binh đã vào phòng</span>
-        </div>
-      </div>
-
-      <div class="players-grid" id="lobby-players"></div>
-
-      <div id="host-controls" class="host-area" style="display:none;">
-        <button id="btn-start" class="candy-btn candy-btn-start pulse-rainbow" onclick="hostStart()">
-          ⚔️ BẮT ĐẦU TRẬN ĐẤU! ⚔️
-        </button>
-        <p class="host-tip">👑 Bạn là Chủ Phòng! Nhấn nút khi lớp đã vào đủ.</p>
-      </div>
-
-      <div id="player-waiting" class="waiting-area">
-        <div class="waiting-candy-loader">
-          <div class="spinner-donut"></div>
-        </div>
-        <p>Đang đợi lệnh xuất kích từ Chủ phòng...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ MÀN HÌNH 3: ĐẾM NGƯỢC (COUNTDOWN) ═══ -->
-  <div id="screen-countdown" class="screen">
-    <div class="countdown-container">
-      <div class="countdown-boss-intro">
-        <div class="horn-brass-icon">🎺✨</div>
-        <p class="countdown-text">CHUẨN BỊ BẮT ĐẦU TRONG</p>
-        <div class="countdown-number" id="countdown-number">5</div>
-        <p class="countdown-ready">MẮT NHÌN TIVI • TAY SẴN SÀNG CHẠM! ⚡</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══ MÀN HÌNH 4: BẢNG TRẢ LỜI TRÊN ĐIỆN THOẠI (GAMEPLAY) ═══ -->
-  <div id="screen-game" class="screen">
-    <div class="game-container">
-      
-      <!-- Header trạng thái -->
-      <div class="game-header-bar">
-        <div class="header-left">
-          <span class="round-pill" id="game-round">Vòng 1/5</span>
+    <!-- ═══ MÀN HÌNH 2: PHÒNG CHỜ THI ĐẤU (KHÔNG CÓ NÚT BẮT ĐẦU) ═══ -->
+    <div id="screen-lobby" class="screen">
+      <div class="candy-container">
+        
+        <div class="lobby-header">
+          <div class="my-lounge-avatar pulse-glow" id="lounge-my-avatar">🐰</div>
+          <h2 class="lounge-welcome">Chào <strong id="lounge-my-name">Chiến Binh</strong>!</h2>
+          <p class="lounge-status-pill">✨ BẠN ĐÃ SẴN SÀNG VÀO TRẬN ✨</p>
         </div>
 
-        <div class="header-center">
-          <div class="timer-bubble">
-            <span class="timer-clock-icon">⏱️</span>
-            <span class="timer-val" id="game-timer-text">10s</span>
+        <div class="waiting-instruction-card candy-card glow-card">
+          <div class="waiting-candy-spinner">
+            <div class="spinner-donut"></div>
+          </div>
+          <h3 class="waiting-title">ĐANG CHỜ MC MỞ TRẬN ĐẤU...</h3>
+          <p class="waiting-desc">Màn hình Tivi trên Laptop sẽ điều hành trận đấu. Hãy hướng mắt nhìn lên màn hình Tivi lớn nhé!</p>
+          <div class="lobby-count-tag">
+            👥 Đang có <strong id="lobby-count">0</strong> bạn trong phòng
           </div>
         </div>
 
-        <div class="header-right">
-          <div class="score-pill">
-            <span>⭐</span>
-            <span id="game-score">0</span>
+        <!-- Danh sách đồng đội cùng phòng -->
+        <div class="players-mini-wall candy-card">
+          <div class="wall-title">ĐỒNG ĐỘI LỚP A13 TRONG PHÒNG:</div>
+          <div class="players-grid" id="lobby-players"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ MÀN HÌNH 3: ĐẾM NGƯỢC XUẤT KÍCH (5S) ═══ -->
+    <div id="screen-countdown" class="screen">
+      <div class="countdown-container">
+        <div class="countdown-boss-intro">
+          <div class="horn-brass-icon">🎺✨</div>
+          <p class="countdown-text">CHUẨN BỊ XUẤT KÍCH</p>
+          <div class="countdown-number" id="countdown-number">5</div>
+          <p class="countdown-ready">MẮT NHÌN TIVI • TAY SẴN SÀNG CHẠM! ⚡</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MÀN HÌNH 4: TAY CẦM ĐIỀU KHIỂN ARCADE 10 GIÂY ═══ -->
+    <div id="screen-game" class="screen">
+      <div class="game-container">
+        
+        <!-- Thanh trạng thái đỉnh màn hình -->
+        <div class="game-header-bar">
+          <div class="header-left">
+            <span class="round-pill" id="game-round">Vòng 1/5</span>
+          </div>
+
+          <div class="header-center">
+            <div class="timer-bubble">
+              <span class="timer-clock-icon">⏱️</span>
+              <span class="timer-val" id="game-timer-text">10s</span>
+            </div>
+          </div>
+
+          <div class="header-right">
+            <div class="score-pill">
+              <span>⭐</span>
+              <span id="game-score">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ticker Điểm Đang Giảm Dần Trong 10 Giây -->
+        <div class="live-points-ticker" id="live-points-ticker">
+          🔥 Điểm nếu bấm ngay: <strong id="live-potential-pts">200</strong>đ
+        </div>
+
+        <!-- Thanh Thời Gian 10s -->
+        <div class="timer-bar-track">
+          <div class="timer-bar-candy" id="game-timer-bar"></div>
+        </div>
+
+        <!-- Thẻ Câu Hỏi Thu Nhỏ (Có thể nhìn Tivi cho to) -->
+        <div class="puzzle-card candy-card" id="game-puzzle">
+          <p class="puzzle-question-text" id="phone-question-text">Đang tải câu hỏi...</p>
+        </div>
+
+        <!-- 4 NÚT CHỌN ARCADE KHỔNG LỒ (1 CHẠM SIÊU NHANH) -->
+        <div class="answer-interactive-area" id="answer-area">
+          <!-- Render 4 nút chọn A, B, C, D -->
+        </div>
+
+        <!-- Thông báo sau khi đã bấm nộp bài -->
+        <div id="answered-waiting-msg" class="answered-waiting-box" style="display:none;">
+          <div class="submitted-check-icon">✅</div>
+          <h3>ĐÃ NỘP BÀI THÀNH CÔNG!</h3>
+          <p class="submitted-time-text">Tốc độ của bạn: <strong id="submitted-time-val">1.25s</strong></p>
+          <p class="look-at-tv-hint">👀 Hãy nhìn lên màn hình Tivi lớn để xem thứ hạng nhé!</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ MÀN HÌNH 5: KẾT QUẢ VÒNG CÁ NHÂN ═══ -->
+    <div id="screen-round-result" class="screen">
+      <div class="candy-container">
+        <div class="result-header">
+          <div id="result-icon" class="result-emoji-anim">🎉</div>
+          <h2 id="result-title">XUẤT SẮC!</h2>
+          <p id="result-message" class="result-subtitle">Kết quả vòng này của bạn</p>
+        </div>
+
+        <!-- Thẻ Điểm Vòng -->
+        <div class="result-points candy-card glow-card">
+          <span class="points-label">Điểm Vòng Này</span>
+          <span class="points-value" id="result-points">+185</span>
+          <span class="points-total">Tổng điểm: <strong id="result-total">0</strong> ⭐</span>
+          <div class="my-current-rank-tag" id="my-current-rank-tag">
+            Vị trí của bạn: <strong>#1</strong> trên Bảng Vàng
+          </div>
+        </div>
+
+        <!-- Bảng xếp hạng mini -->
+        <div class="leaderboard-mini candy-card">
+          <h3>📊 Bảng Xếp Hạng A13</h3>
+          <div id="leaderboard-round" class="leaderboard-list"></div>
+        </div>
+
+        <div class="next-round-timer">
+          <p>MC đang chuẩn bị vòng kế tiếp...</p>
+          <div class="next-round-bar">
+            <div class="next-round-bar-fill" id="next-round-bar-fill"></div>
           </div>
         </div>
       </div>
-
-      <!-- Đồng hồ điểm đang giảm dần trong 10s -->
-      <div class="live-points-ticker" id="live-points-ticker">
-        ⚡ Điểm nhận được nếu bấm ngay: <strong id="live-potential-pts">200</strong>đ
-      </div>
-
-      <div class="timer-bar-track">
-        <div class="timer-bar-candy" id="game-timer-bar"></div>
-      </div>
-
-      <!-- Thẻ câu hỏi -->
-      <div class="puzzle-card candy-card" id="game-puzzle">
-        <p class="puzzle-question-text" id="phone-question-text">Đang tải câu hỏi...</p>
-      </div>
-
-      <!-- 4 Nút Lựa Chọn Siêu To 1 Chạm -->
-      <div class="answer-interactive-area" id="answer-area">
-        <!-- Render 4 nút chọn A B C D -->
-      </div>
-
-      <div id="answered-waiting-msg" class="answered-waiting-box" style="display:none;">
-        <div class="spinner-donut" style="width:30px; height:30px; margin:0 auto 8px;"></div>
-        <p>🎯 Đã ghi nhận câu trả lời của bạn!</p>
-        <p style="font-size:0.85rem; color:#851C5E;">Hãy nhìn lên màn hình Tivi xem bạn xếp thứ mấy nhé!</p>
-      </div>
-
     </div>
-  </div>
 
-  <!-- ═══ MÀN HÌNH 5: KẾT QUẢ VÒNG (ROUND RESULT) ═══ -->
-  <div id="screen-round-result" class="screen">
-    <div class="candy-container">
-      <div class="result-header">
-        <div id="result-icon" class="result-emoji-anim">🎉</div>
-        <h2 id="result-title">KẾT QUẢ VÒNG</h2>
-        <p id="result-message" class="result-subtitle">Điểm số của bạn</p>
-      </div>
+    <!-- ═══ MÀN HÌNH 6: BẢNG VINH DANH CHUNG CUỘC ═══ -->
+    <div id="screen-results" class="screen">
+      <div class="candy-container">
+        <div class="final-header">
+          <div class="fireworks-anim">🎆🎇✨🎇🎆</div>
+          <h1 class="final-title">👑 TỔNG KẾT TRẬN CHIẾN A13 👑</h1>
+          <p class="final-subtitle">Tôn vinh các chiến binh xuất sắc nhất!</p>
+        </div>
 
-      <div class="result-points candy-card glow-card">
-        <span class="points-label">Điểm Nhận Được</span>
-        <span class="points-value" id="result-points">+185</span>
-        <span class="points-total">Tổng điểm hiện tại: <strong id="result-total">0</strong> ⭐</span>
-      </div>
+        <div class="podium-3d" id="podium"></div>
 
-      <div class="leaderboard-mini candy-card">
-        <h3>📊 Bảng Xếp Hạng Hiện Tại</h3>
-        <div id="leaderboard-round" class="leaderboard-list"></div>
-      </div>
-
-      <div class="next-round-timer">
-        <p>Vòng tiếp theo chuẩn bị trong <span id="next-round-countdown">7</span>s...</p>
-        <div class="next-round-bar">
-          <div class="next-round-bar-fill" id="next-round-bar-fill"></div>
+        <div class="full-rankings candy-card glow-card">
+          <h3>📜 BẢNG ĐIỂM CHUNG CUỘC</h3>
+          <table class="rankings-table">
+            <thead>
+              <tr>
+                <th>Hạng</th>
+                <th>Chiến Binh</th>
+                <th>Điểm Số</th>
+                <th>Giải Thưởng</th>
+              </tr>
+            </thead>
+            <tbody id="results-table"></tbody>
+          </table>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ═══ MÀN HÌNH 6: BẢNG VINH QUANG CHUNG CUỘC (PODIUM) ═══ -->
-  <div id="screen-results" class="screen">
-    <div class="candy-container">
-      <div class="final-header">
-        <div class="fireworks-anim">🎆🎇✨🎇🎆</div>
-        <h1 class="final-title">👑 VINH QUANG CHIẾN BINH A13 👑</h1>
-        <p class="final-subtitle">Chúc mừng các bạn đã xuất sắc giành giải thưởng!</p>
-      </div>
-
-      <div class="podium-3d" id="podium"></div>
-
-      <div class="full-rankings candy-card glow-card">
-        <h3>📜 BẢNG ĐIỂM CHUNG CUỘC</h3>
-        <table class="rankings-table">
-          <thead>
-            <tr>
-              <th>Hạng</th>
-              <th>Chiến Binh</th>
-              <th>Điểm Số</th>
-              <th>Giải Thưởng</th>
-            </tr>
-          </thead>
-          <tbody id="results-table"></tbody>
-        </table>
-      </div>
-
-      <div id="final-host-controls" style="display:none; width:100%;">
-        <button class="candy-btn candy-btn-primary candy-btn-large" onclick="hostReset()">
-          🔄 BẮT ĐẦU VÁN MỚI
-        </button>
-      </div>
+    <!-- Toast Thông Báo -->
+    <div id="toast" class="candy-toast" style="display:none;">
+      <span id="toast-icon">🍬</span>
+      <span id="toast-msg"></span>
     </div>
-  </div>
 
-  <!-- Toast -->
-  <div id="toast" class="candy-toast" style="display:none;">
-    <span id="toast-icon">🍬</span>
-    <span id="toast-msg"></span>
   </div>
 
   <!-- Scripts -->
