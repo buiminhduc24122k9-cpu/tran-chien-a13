@@ -1,0 +1,62 @@
+[
+  {
+    "round": 1,
+    "bossName": "⚔️ Vòng 1: Khởi Động A13",
+    "question": "Khẩu hiệu chất nhất của đại gia đình A13 là gì?",
+    "options": [
+      "A13 Bá Đạo Từng Hạt Gạo 🔥",
+      "Học Hết Mình - Chơi Hết Sức ✨",
+      "Đoàn Kết Là Sức Mạnh 💪",
+      "A13 Mãi Đỉnh Mãi Chất 👑"
+    ],
+    "answer": "A13 Mãi Đỉnh Mãi Chất 👑"
+  },
+  {
+    "round": 2,
+    "bossName": "⚡ Vòng 2: Phản Xạ Thần Tốc",
+    "question": "Tính nhẩm nhanh trong 10s: 25 + 75 - 10 bằng bao nhiêu?",
+    "options": [
+      "80",
+      "90",
+      "100",
+      "85"
+    ],
+    "answer": "90"
+  },
+  {
+    "round": 3,
+    "bossName": "🎯 Vòng 3: Tinh Mắt Tinh Anh",
+    "question": "Màu sắc biểu tượng của Trận Chiến A13 hôm nay là màu gì?",
+    "options": [
+      "Màu Hồng Ngọt Ngào 💖",
+      "Màu Xanh Biển",
+      "Màu Vàng Rực Rỡ",
+      "Màu Tím Mộng Mơ"
+    ],
+    "answer": "Màu Hồng Ngọt Ngào 💖"
+  },
+  {
+    "round": 4,
+    "bossName": "🔥 Vòng 4: Tăng Tốc Về Đích",
+    "question": "Thức uống nào tiếp thêm 200% năng lượng cho A13 cày game?",
+    "options": [
+      "Trà Sữa Full Topping 🧋",
+      "Nước Ép Dâu Tây 🍓",
+      "Cà Phê Muối ☕",
+      "Trà Đào Cam Sả 🍑"
+    ],
+    "answer": "Trà Sữa Full Topping 🧋"
+  },
+  {
+    "round": 5,
+    "bossName": "👑 Vòng 5: Đại Quyết Đấu Di Sản A13",
+    "question": "Ai sẽ là nhà vô địch đoạt Giải Nhất vinh quang của Trận Chiến A13?",
+    "options": [
+      "Chính Là Tôi! 🏆",
+      "Người Nhanh Tay Nhất ⚡",
+      "Tất Cả Chúng Ta Đều Thắng 🎉",
+      "Cả 3 Đáp Án Trên! 👑"
+    ],
+    "answer": "Cả 3 Đáp Án Trên! 👑"
+  }
+]

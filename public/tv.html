@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📺 TRẬN CHIẾN A13 - MÀN HÌNH TIVI TRỰC TIẾP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/tv.css">
+</head>
+<body class="tv-body">
+
+  <!-- 3D Background Canvas -->
+  <canvas id="three-canvas"></canvas>
+
+  <!-- Âm thanh Tivi -->
+  <button id="tv-sound-btn" class="tv-sound-btn" onclick="toggleTvAudio()">🔊</button>
+
+  <div class="tv-wrapper">
+
+    <!-- ═══ 1. MÀN HÌNH CHỜ TRÊN TIVI (TV LOBBY) ═══ -->
+    <div id="tv-screen-lobby" class="tv-screen active">
+      <div class="tv-header-box">
+        <div class="tv-badge-pill">💖 ĐẤU TRƯỜNG TRỰC TIẾP LỚP A13 💖</div>
+        <h1 class="tv-main-title">⚔️ TRẬN CHIẾN A13 ⚔️</h1>
+        <p class="tv-subtitle">Quét mã hoặc vào link trên điện thoại • Nhập mật khẩu: <span class="pwd-tag">ABC13</span></p>
+      </div>
+
+      <div class="tv-lobby-content">
+        <div class="tv-lobby-card">
+          <div class="tv-count-header">
+            <span class="tv-count-num" id="tv-player-count">0</span>
+            <span class="tv-count-txt">Chiến binh đã vào phòng đấu</span>
+          </div>
+          <div class="tv-players-wall" id="tv-players-list">
+            <!-- Danh sách người chơi hiển thị to đẹp -->
+          </div>
+        </div>
+      </div>
+
+      <div class="tv-lobby-footer">
+        <button id="tv-btn-start" class="candy-btn candy-btn-start tv-big-btn" onclick="tvStartGame()">
+          🚀 BẮT ĐẦU TRẬN ĐẤU A13! 🚀
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ 2. ĐẾM NGƯỢC (COUNTDOWN) ═══ -->
+    <div id="tv-screen-countdown" class="tv-screen">
+      <div class="tv-countdown-box">
+        <div class="tv-countdown-icon">🎺✨</div>
+        <h2 class="tv-countdown-title">TRẬN ĐẤU SẼ BẮT ĐẦU TRONG</h2>
+        <div class="tv-countdown-giant-num" id="tv-countdown-num">5</div>
+        <p class="tv-countdown-hint">Tập trung nhìn màn hình điện thoại & Tivi! Mỗi câu chỉ có 10 giây!</p>
+      </div>
+    </div>
+
+    <!-- ═══ 3. TRẬN ĐẤU ĐANG DIỄN RA (TV PLAYING - 10 GIÂY) ═══ -->
+    <div id="tv-screen-game" class="tv-screen">
+      
+      <!-- Thanh thông tin vòng -->
+      <div class="tv-round-bar">
+        <div class="tv-round-name" id="tv-round-title">VÒNG 1/5</div>
+        
+        <!-- Đồng hồ đếm lùi 10s to khổng lồ -->
+        <div class="tv-timer-box">
+          <span class="tv-clock-icon">⏱️</span>
+          <span class="tv-timer-num" id="tv-timer-num">10s</span>
+        </div>
+
+        <div class="tv-answered-badge">
+          👥 <span id="tv-answered-ratio">0/0</span> đã trả lời
+        </div>
+      </div>
+
+      <!-- Thanh chạy thời gian 10s -->
+      <div class="tv-time-track">
+        <div class="tv-time-fill" id="tv-time-fill"></div>
+      </div>
+
+      <!-- Câu hỏi to đùng trên màn hình TV -->
+      <div class="tv-question-box">
+        <h2 class="tv-question-text" id="tv-question-text">Đang tải câu hỏi...</h2>
+      </div>
+
+      <!-- 4 Lựa chọn hiển thị rõ ràng trên TV -->
+      <div class="tv-options-grid" id="tv-options-grid">
+        <!-- 4 Option cards -->
+      </div>
+
+      <!-- Thông báo tốc độ điểm -->
+      <div class="tv-speed-hint">
+        ⚡ <strong>Cách tính điểm:</strong> Đúng +100đ cơ bản • Trả lời càng nhanh ăn thêm đến +100đ tốc độ (Giảm dần trong 10s)!
+      </div>
+    </div>
+
+    <!-- ═══ 4. BẢNG XẾP HẠNG SAU MỖI VÒNG (TV LEADERBOARD) ═══ -->
+    <div id="tv-screen-round-end" class="tv-screen">
+      <div class="tv-round-end-header">
+        <div class="tv-correct-banner">
+          <span>✅ ĐÁP ÁN ĐÚNG:</span>
+          <strong id="tv-correct-ans-text">Đáp án</strong>
+        </div>
+        <h2 class="tv-lb-title">📊 BẢNG VÀNG THỨ HẠNG A13 SAU VÒNG <span id="tv-lb-round-num">1</span></h2>
+      </div>
+
+      <!-- Người đang dẫn đầu Top 1 nổi bật -->
+      <div class="tv-leader-spotlight" id="tv-leader-spotlight">
+        <div class="spotlight-crown">👑</div>
+        <div class="spotlight-info">
+          <div class="spotlight-label">ĐANG DẪN ĐẦU ĐOÀN ĐUA:</div>
+          <div class="spotlight-name" id="tv-top1-name">Chiến Binh A13</div>
+          <div class="spotlight-pts" id="tv-top1-pts">0 Điểm</div>
+        </div>
+      </div>
+
+      <!-- Bảng xếp hạng các vị trí còn lại -->
+      <div class="tv-lb-container" id="tv-lb-container">
+        <!-- Danh sách xếp hạng animated -->
+      </div>
+
+      <!-- Thanh đếm lùi sang vòng kế tiếp -->
+      <div class="tv-next-round-bar-box">
+        <span>Vòng tiếp theo sẽ bắt đầu sau: <strong id="tv-next-sec">7</strong>s</span>
+        <div class="tv-next-track">
+          <div class="tv-next-fill" id="tv-next-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 5. BỤC VINH QUANG CHUNG CUỘC (GRAND FINALE) ═══ -->
+    <div id="tv-screen-game-over" class="tv-screen">
+      <div class="tv-final-header">
+        <div class="tv-fireworks-giant">🎆🎇✨🎇🎆</div>
+        <h1 class="tv-final-title">👑 VINH QUANG NHÀ VÔ ĐỊCH A13 👑</h1>
+        <p class="tv-final-subtitle">Chúc mừng các chiến binh xuất sắc nhất đã chinh phục Trận Chiến A13!</p>
+      </div>
+
+      <!-- Bục podium 3 hạng: 1 Nhất, 2 Nhì, 3 Ba -->
+      <div class="tv-podium-showcase" id="tv-podium-showcase">
+        <!-- Render 3 bậc vinh quang -->
+      </div>
+
+      <!-- Nút chơi lại -->
+      <div class="tv-final-actions">
+        <button class="candy-btn candy-btn-primary tv-big-btn" onclick="tvResetGame()">
+          🔄 BẮT ĐẦU TRẬN CHIẾN MỚI
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/tv.js"></script>
+</body>
+</html>
