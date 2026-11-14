@@ -48,6 +48,168 @@
   transform: scale(0.9);
 }
 
+.tv-qr-top-btn {
+  position: fixed;
+  top: 18px;
+  right: 90px;
+  z-index: 9999;
+  background: linear-gradient(135deg, #FF69B4, #FF0A7B);
+  color: #FFF;
+  border: 3px solid #FFF;
+  border-radius: 28px;
+  padding: 10px 22px;
+  font-family: var(--font-candy);
+  font-size: 1.1rem;
+  font-weight: 800;
+  box-shadow: 0 4px 18px rgba(255, 10, 123, 0.45);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-qr-top-btn:hover {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 24px rgba(255, 10, 123, 0.6);
+}
+
+.tv-qr-banner-btn {
+  background: linear-gradient(135deg, #FF0A7B, #D81B60);
+  color: #FFF;
+  border: 3px solid #FFF;
+  border-radius: 24px;
+  padding: 8px 22px;
+  font-family: var(--font-candy);
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(255, 10, 123, 0.4);
+  transition: all 0.2s;
+}
+
+.tv-qr-banner-btn:hover {
+  transform: scale(1.05);
+}
+
+/* ─── MODAL MÃ QR KHỔNG LỒ ──────────────────────────────── */
+.tv-qr-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(40, 5, 25, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tvScaleIn 0.3s ease-out;
+}
+
+.tv-qr-card {
+  position: relative;
+  background: #FFF;
+  border: 5px solid #FF8FAB;
+  border-radius: 36px;
+  padding: 32px 42px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.tv-qr-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  background: #FFE5EC;
+  border: 2px solid #FF8FAB;
+  color: #D81B60;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tv-qr-close-btn:hover {
+  background: #FF0A7B;
+  color: #FFF;
+}
+
+.tv-qr-badge {
+  background: #FFE5EC;
+  border: 2px solid #FF8FAB;
+  color: #D81B60;
+  padding: 6px 20px;
+  border-radius: 20px;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.tv-qr-image-wrapper {
+  background: #FFF;
+  border: 4px solid #FFC2D1;
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(255, 105, 180, 0.25);
+  margin: 4px 0;
+}
+
+.tv-qr-image-wrapper img {
+  width: 260px;
+  height: 260px;
+  display: block;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+.tv-qr-link-box {
+  background: #F8F9FA;
+  border: 2px solid #E9ECEF;
+  border-radius: 14px;
+  padding: 6px 16px;
+  font-size: 1rem;
+  color: #495057;
+}
+
+.tv-qr-link-box strong {
+  color: #D81B60;
+}
+
+.tv-qr-pwd-pill {
+  background: linear-gradient(135deg, #FF0A7B, #D81B60);
+  color: #FFF;
+  font-size: 1.3rem;
+  font-weight: 800;
+  padding: 8px 26px;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(255, 10, 123, 0.35);
+}
+
+.tv-qr-pwd-pill span {
+  background: #FFF;
+  color: #FF0A7B;
+  padding: 2px 12px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.tv-qr-guide {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #851C5E;
+}
+
 .tv-wrapper {
   position: relative;
   z-index: 2;

@@ -1,13 +1,20 @@
 /* ============================================================
    📱 TRẬN CHIẾN A13 - LOGIC ĐIỀU KHIỂN TRÊN ĐIỆN THOẠI
    Tactile Arcade Gameplay with 3D Background & Sound
+   Hỗ trợ khôi phục phiên khi rớt mạng / refresh mà không mất điểm
    ============================================================ */
 
 const socket = io({ reconnection: true });
 
-// Trạng thái cục bộ
-let myName = '';
-let myAvatar = '🐰';
+// ─── QUẢN LÝ ĐỊNH DANH NGƯỜI CHƠI (LOCALSTORAGE) ───────────
+let myPlayerId = localStorage.getItem('a13_player_id');
+if (!myPlayerId) {
+  myPlayerId = 'p_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
+  localStorage.setItem('a13_player_id', myPlayerId);
+}
+
+let myName = localStorage.getItem('a13_player_name') || '';
+let myAvatar = localStorage.getItem('a13_player_avatar') || '🐰';
 let currentRound = 0;
 let roundStartTime = 0;
 let timerInterval = null;
@@ -22,7 +29,8 @@ const $$ = (sel) => document.querySelectorAll(sel);
 // ─── CHỌN AVATAR ───────────────────────────────────────────
 function selectAvatar(emoji, btn) {
   myAvatar = emoji;
-  $('#current-chosen-avatar').textContent = emoji;
+  localStorage.setItem('a13_player_avatar', myAvatar);
+  if ($('#current-chosen-avatar')) $('#current-chosen-avatar').textContent = emoji;
   $$('.avatar-choice-btn').forEach(b => b.classList.remove('selected'));
   if (btn) btn.classList.add('selected');
   initAudio();
@@ -64,7 +72,6 @@ const SoundFX = {
   tap() {
     initAudio();
     playTone(520, 'triangle', 0.12, 0.2);
-    // Haptic vibration trên điện thoại
     if (navigator.vibrate) {
       navigator.vibrate(35);
     }
@@ -97,7 +104,8 @@ const SoundFX = {
 
 function toggleAudio() {
   soundEnabled = !soundEnabled;
-  $('#sound-icon').textContent = soundEnabled ? '🔊' : '🔇';
+  const icon = $('#sound-icon');
+  if (icon) icon.textContent = soundEnabled ? '🔊' : '🔇';
   showToast(soundEnabled ? 'Đã bật âm thanh 🎵' : 'Đã tắt âm thanh 🔇');
 }
 
@@ -177,6 +185,7 @@ function showScreen(id) {
 
 function showToast(msg, duration = 3000) {
   const toast = $('#toast');
+  if (!toast) return;
   $('#toast-msg').textContent = msg;
   toast.style.display = 'flex';
   clearTimeout(toast._timer);
@@ -203,29 +212,88 @@ function joinRoom() {
   $('#btn-join').disabled = true;
   $('#btn-join').innerHTML = '⏳ ĐANG VÀO PHÒNG...';
 
-  socket.emit('join-room', { playerName: name, password, avatar: myAvatar });
+  // Lưu thông tin vào localStorage để nếu lỡ F5 hoặc rớt mạng sẽ tự vào lại
+  localStorage.setItem('a13_player_name', name);
+  localStorage.setItem('a13_player_avatar', myAvatar);
+  localStorage.setItem('a13_password', password);
+
+  socket.emit('join-room', {
+    playerId: myPlayerId,
+    playerName: name,
+    password: password,
+    avatar: myAvatar
+  });
+}
+
+function changePlayerName() {
+  localStorage.removeItem('a13_player_name');
+  showScreen('screen-login');
+  const btn = $('#btn-join');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 VÀO PHÒNG ĐẤU A13!';
+  }
 }
 
 function showError(msg) {
   const el = $('#login-error');
+  if (!el) return;
   el.textContent = msg;
   el.style.display = 'block';
   SoundFX.wrong();
   setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
+// ─── TỰ ĐỘNG KẾT NỐI LẠI KHI SOCKET RECONNECT ───────────────
+socket.on('connect', () => {
+  const savedName = localStorage.getItem('a13_player_name');
+  const savedPass = localStorage.getItem('a13_password') || 'ABC13';
+  if (savedName) {
+    socket.emit('join-room', {
+      playerId: myPlayerId,
+      playerName: savedName,
+      password: savedPass,
+      avatar: myAvatar
+    });
+  }
+});
+
 // ─── LẮNG NGHE SỰ KIỆN TỪ SERVER ───────────────────────────
 socket.on('room-joined', (data) => {
+  myPlayerId = data.playerId || myPlayerId;
   myName = data.playerName;
-  myAvatar = data.avatar;
+  myAvatar = data.avatar || myAvatar;
+  totalPoints = data.totalPoints || 0;
 
-  showScreen('screen-lobby');
-  $('#lounge-my-avatar').textContent = myAvatar;
-  $('#lounge-my-name').textContent = myName;
+  localStorage.setItem('a13_player_id', myPlayerId);
+  localStorage.setItem('a13_player_name', myName);
+  localStorage.setItem('a13_player_avatar', myAvatar);
 
-  updateLobbyPlayers(data.players);
-  SoundFX.correct();
-  showToast(`Chào mừng ${myName}! Đã sẵn sàng! 👑`);
+  const btn = $('#btn-join');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 VÀO PHÒNG ĐẤU A13!';
+  }
+
+  if ($('#lounge-my-avatar')) $('#lounge-my-avatar').textContent = myAvatar;
+  if ($('#lounge-my-name')) $('#lounge-my-name').textContent = myName;
+  if ($('#game-score')) $('#game-score').textContent = totalPoints;
+
+  if (data.isReconnection) {
+    SoundFX.correct();
+    showToast(`♻️ Chào mừng trở lại, ${myName}! Giữ nguyên ${totalPoints} điểm!`, 3500);
+    if (data.phase === 'WAITING') {
+      showScreen('screen-lobby');
+    }
+  } else {
+    showScreen('screen-lobby');
+    SoundFX.correct();
+    showToast(`Chào mừng ${myName}! Đã sẵn sàng! 👑`, 2500);
+  }
+
+  if (data.players) {
+    updateLobbyPlayers(data.players);
+  }
 });
 
 socket.on('lobby-update', (data) => {
@@ -260,7 +328,7 @@ socket.on('game-countdown', (data) => {
 // Bắt đầu vòng đấu 10 giây
 socket.on('round-start', (data) => {
   currentRound = data.roundIndex;
-  hasAnsweredCurrentRound = false;
+  hasAnsweredCurrentRound = data.alreadyAnswered || false;
 
   showScreen('screen-game');
   SoundFX.fanfare();
@@ -268,10 +336,21 @@ socket.on('round-start', (data) => {
   $('#game-round').textContent = `Vòng ${currentRound + 1}/${data.totalRounds}`;
   $('#game-score').textContent = totalPoints;
   $('#phone-question-text').textContent = data.question;
-  $('#answered-waiting-msg').style.display = 'none';
-  $('#answer-area').style.display = 'flex';
 
   renderPhoneButtons(data.options);
+
+  if (data.alreadyAnswered) {
+    $('#answered-waiting-msg').style.display = 'block';
+    $('#answer-area').style.display = 'none';
+    $$('.option-candy-btn').forEach(b => {
+      b.disabled = true;
+      b.style.pointerEvents = 'none';
+    });
+  } else {
+    $('#answered-waiting-msg').style.display = 'none';
+    $('#answer-area').style.display = 'flex';
+  }
+
   startTimer(data.timeLimit || 10);
 });
 
@@ -324,7 +403,7 @@ function startTimer(seconds) {
   const timerText = $('#game-timer-text');
   const potentialEl = $('#live-potential-pts');
 
-  timerBar.style.width = '100%';
+  if (timerBar) timerBar.style.width = '100%';
 
   if (timerInterval) clearInterval(timerInterval);
 
@@ -334,8 +413,8 @@ function startTimer(seconds) {
     const sec = Math.ceil(remainMs / 1000);
     const pct = (remainMs / (seconds * 1000)) * 100;
 
-    timerBar.style.width = `${pct}%`;
-    timerText.textContent = `${sec}s`;
+    if (timerBar) timerBar.style.width = `${pct}%`;
+    if (timerText) timerText.textContent = `${sec}s`;
 
     // Điểm thưởng giảm dần từ 200đ về 100đ trong 10s
     const speedRatio = Math.max(0, remainMs / (seconds * 1000));
@@ -344,7 +423,7 @@ function startTimer(seconds) {
 
     if (remainMs <= 0) {
       clearInterval(timerInterval);
-      timerText.textContent = '0s';
+      if (timerText) timerText.textContent = '0s';
       if (!hasAnsweredCurrentRound) {
         $$('.option-candy-btn').forEach(b => b.disabled = true);
       }
@@ -363,7 +442,7 @@ function stopTimer() {
 socket.on('answer-result', (data) => {
   stopTimer();
   totalPoints = data.totalPoints;
-  $('#game-score').textContent = totalPoints;
+  if ($('#game-score')) $('#game-score').textContent = totalPoints;
 
   if (data.isCorrect) {
     SoundFX.correct();
@@ -409,15 +488,16 @@ socket.on('round-end', (data) => {
   if (data.roundIndex < data.totalRounds - 1) {
     let nextSec = 7;
     const barFill = $('#next-round-bar-fill');
-    barFill.style.width = '100%';
+    if (barFill) barFill.style.width = '100%';
 
     const nextTimer = setInterval(() => {
       nextSec--;
-      barFill.style.width = `${(nextSec / 7) * 100}%`;
+      if (barFill) barFill.style.width = `${(nextSec / 7) * 100}%`;
       if (nextSec <= 0) clearInterval(nextTimer);
     }, 1000);
   } else {
-    document.querySelector('.next-round-timer').innerHTML = '<p>🏆 Đang tính toán Bảng Vàng Chung Cuộc...</p>';
+    const nextTimerEl = document.querySelector('.next-round-timer');
+    if (nextTimerEl) nextTimerEl.innerHTML = '<p>🏆 Đang tính toán Bảng Vàng Chung Cuộc...</p>';
   }
 });
 
@@ -439,12 +519,12 @@ socket.on('game-reset', () => {
 });
 
 socket.on('error-msg', (data) => {
-  if (document.querySelector('.screen.active')?.id === 'screen-login') {
-    showError(data.message);
-    $('#btn-join').disabled = false;
-    $('#btn-join').innerHTML = '🚀 VÀO PHÒNG ĐẤU A13!';
-  } else {
-    showToast(data.message);
+  showScreen('screen-login');
+  showError(data.message);
+  const btn = $('#btn-join');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '🚀 VÀO PHÒNG ĐẤU A13!';
   }
 });
 
@@ -519,7 +599,37 @@ function escapeHtml(str) {
 
 document.addEventListener('DOMContentLoaded', () => {
   initThreeWorld();
-  showScreen('screen-login');
+
+  // Nạp avatar đã lưu
+  const savedAvatar = localStorage.getItem('a13_player_avatar');
+  if (savedAvatar) {
+    myAvatar = savedAvatar;
+    if ($('#current-chosen-avatar')) $('#current-chosen-avatar').textContent = myAvatar;
+    $$('.avatar-choice-btn').forEach(b => {
+      if (b.textContent.trim() === myAvatar) b.classList.add('selected');
+      else b.classList.remove('selected');
+    });
+  }
+
+  const savedName = localStorage.getItem('a13_player_name');
+  const savedPass = localStorage.getItem('a13_password') || 'ABC13';
+
+  if (savedName && $('#input-name')) $('#input-name').value = savedName;
+  if (savedPass && $('#input-password')) $('#input-password').value = savedPass;
+
+  // Nếu người dùng đã từng vào phòng trước đó (có ID và Tên), tự động kết nối lại liền!
+  if (savedName) {
+    const btn = $('#btn-join');
+    if (btn) btn.innerHTML = '🔄 ĐANG KHÔI PHỤC PHIÊN CHƠI...';
+    socket.emit('join-room', {
+      playerId: myPlayerId,
+      playerName: savedName,
+      password: savedPass,
+      avatar: myAvatar
+    });
+  } else {
+    showScreen('screen-login');
+  }
 
   $('#input-password')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') joinRoom();

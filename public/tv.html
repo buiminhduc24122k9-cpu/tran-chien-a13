@@ -15,6 +15,11 @@
   <!-- 3D THREE.JS WEBGL GLOWING ARENA CANVAS -->
   <canvas id="three-canvas"></canvas>
 
+  <!-- NÚT BẬT MÃ QR TO TRÊN LAPTOP -->
+  <button id="tv-qr-top-btn" class="tv-qr-top-btn" onclick="openQrModal()" title="Bật mã QR quét điện thoại">
+    📷 MÃ QR VÀO GAME
+  </button>
+
   <!-- NÚT ÂM THANH TIVI TRÊN LAPTOP -->
   <button id="tv-sound-btn" class="tv-sound-btn" onclick="toggleTvAudio()" aria-label="Bật/Tắt âm thanh Tivi">🔊</button>
 
@@ -27,8 +32,12 @@
       <div class="tv-header-box">
         <div class="tv-badge-pill">✨ ĐẤU TRƯỜNG ĐỈNH CAO LỚP A13 ✨</div>
         <h1 class="tv-main-title">TRẬN CHIẾN A13</h1>
+        
         <div class="tv-connect-info-bar">
-          <div class="tv-info-chip">📱 Vào web trên điện thoại: <strong id="tv-link-display">conclude-permit...</strong></div>
+          <button type="button" class="tv-qr-banner-btn" onclick="openQrModal()">
+            📷 <strong>BẬT MÃ QR QUÉT ĐIỆN THOẠI</strong>
+          </button>
+          <div class="tv-info-chip">📱 Link: <strong id="tv-link-display">Đang tải...</strong></div>
           <div class="tv-info-chip pwd-chip">🔑 Mật khẩu: <span>ABC13</span></div>
         </div>
       </div>
@@ -56,7 +65,7 @@
         <button id="tv-btn-start" class="tv-action-btn tv-start-glow-btn" onclick="tvStartGame()">
           🚀 BẮT ĐẦU TRẬN ĐẤU (MC NHẤN ĐỂ KHỞI TRANH) 🚀
         </button>
-        <p class="tv-mc-note">🔒 Các bạn tham gia trên điện thoại không thể tự ý bắt đầu.</p>
+        <p class="tv-mc-note">🔒 Chỉ người điều khiển Laptop mới có quyền bắt đầu. Các bạn vào sau vẫn được vào chơi tự do!</p>
       </div>
     </div>
 
@@ -179,6 +188,29 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- ═══ MODAL MÃ QR TO RÕ QUÉT BẰNG ĐIỆN THOẠI ═══ -->
+  <div id="tv-qr-modal" class="tv-qr-modal" style="display:none;" onclick="closeQrModal(event)">
+    <div class="tv-qr-card" onclick="event.stopPropagation()">
+      <button class="tv-qr-close-btn" onclick="closeQrModal()" title="Đóng mã QR">✖</button>
+      <div class="tv-qr-badge">📱 QUÉT MÃ VÀO TRẬN CHIẾN A13</div>
+      
+      <div class="tv-qr-image-wrapper">
+        <img id="tv-qr-img" src="/qr.png" alt="Mã QR Chơi Game">
+      </div>
+
+      <div class="tv-qr-link-box">
+        <span class="qr-link-label">Đường dẫn:</span>
+        <strong id="tv-qr-url-text">https://...</strong>
+      </div>
+
+      <div class="tv-qr-pwd-pill">
+        🔑 MẬT KHẨU PHÒNG: <span>ABC13</span>
+      </div>
+
+      <p class="tv-qr-guide">👉 Mở Camera iPhone hoặc Zalo / Trình duyệt trên Android quét mã để vào chơi ngay!</p>
+    </div>
   </div>
 
   <!-- Scripts -->

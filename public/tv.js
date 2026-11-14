@@ -458,6 +458,36 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+// ─── QUẢN LÝ MÃ QR CHO ĐIỆN THOẠI ─────────────────────────
+function openQrModal() {
+  initTvAudio();
+  TvAudio.ding();
+  const modal = document.getElementById('tv-qr-modal');
+  const qrImg = document.getElementById('tv-qr-img');
+  const qrUrlText = document.getElementById('tv-qr-url-text');
+
+  const mobileUrl = window.location.origin;
+  if (qrUrlText) qrUrlText.textContent = mobileUrl;
+
+  if (qrImg) {
+    const apiQr = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(mobileUrl)}`;
+    qrImg.src = apiQr;
+    qrImg.onerror = () => {
+      qrImg.src = '/qr.png';
+    };
+  }
+
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeQrModal(e) {
+  if (e && e.target && e.target.closest('.tv-qr-card') && !e.target.classList.contains('tv-qr-close-btn')) {
+    return;
+  }
+  const modal = document.getElementById('tv-qr-modal');
+  if (modal) modal.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initTvThree();
 });
