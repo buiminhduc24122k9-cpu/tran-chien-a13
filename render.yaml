@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tran-chien-a13
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: GAME_PASSWORD
+        value: ABC13
