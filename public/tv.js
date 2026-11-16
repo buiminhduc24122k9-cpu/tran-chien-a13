@@ -461,6 +461,7 @@ socket.on('round-start', (data) => {
 });
 
 // Tiến độ nộp bài trực tiếp
+let lastDingTime = 0;
 socket.on('answered-progress', (data) => {
   const ratio = document.getElementById('tv-answered-ratio');
   if (ratio) ratio.textContent = `${data.answeredCount}/${data.totalPlayers}`;
@@ -471,7 +472,12 @@ socket.on('answered-progress', (data) => {
     chip.className = 'feed-avatar-chip';
     chip.innerHTML = `${data.justAnsweredAvatar || '✨'} ${escapeHtml(data.justAnsweredName)} ✓`;
     feed.appendChild(chip);
-    TvAudio.ding();
+
+    const now = Date.now();
+    if (now - lastDingTime > 300) {
+      TvAudio.ding();
+      lastDingTime = now;
+    }
   }
 });
 
@@ -559,8 +565,8 @@ socket.on('round-end', (data) => {
     </div>
   `).join('');
 
-  // Tự động đếm lùi 7s hoặc để MC nhấn nút tiếp tục
-  let nextSec = 7;
+  // Đếm lùi 12s cho MC và cả lớp cùng theo dõi hoặc MC nhấn nút chuyển vòng ngay lập tức
+  let nextSec = 12;
   const nextSecEl = document.getElementById('tv-next-sec');
   const nextFill = document.getElementById('tv-next-fill');
   if (nextFill) nextFill.style.width = '100%';
@@ -569,9 +575,10 @@ socket.on('round-end', (data) => {
   autoNextInterval = setInterval(() => {
     nextSec--;
     if (nextSecEl) nextSecEl.textContent = nextSec;
-    if (nextFill) nextFill.style.width = `${(nextSec / 7) * 100}%`;
+    if (nextFill) nextFill.style.width = `${(nextSec / 12) * 100}%`;
     if (nextSec <= 0) {
       clearInterval(autoNextInterval);
+      autoNextInterval = null;
       if (!data.isLastRound) {
         socket.emit('tv-next-round');
       }
@@ -614,6 +621,8 @@ socket.on('game-over', (data) => {
 });
 
 socket.on('game-reset', () => {
+  if (autoNextInterval) clearInterval(autoNextInterval);
+  if (tvRoundTimer) clearInterval(tvRoundTimer);
   showTvScreen('tv-screen-lobby');
 });
 

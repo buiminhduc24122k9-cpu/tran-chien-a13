@@ -13,8 +13,9 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' },
-  pingTimeout: 60000,
-  pingInterval: 25000
+  pingTimeout: 30000,
+  pingInterval: 10000,
+  transports: ['websocket', 'polling']
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -56,16 +57,30 @@ let gameState = {
   countdownTimer: null
 };
 
-function resetGame() {
-  gameState = {
-    phase: 'WAITING',
-    players: {},
-    socketToPlayer: {},
-    currentRound: 0,
-    roundStartTime: null,
-    roundTimer: null,
-    countdownTimer: null
-  };
+function resetGame(keepPlayers = true) {
+  if (gameState.roundTimer) clearTimeout(gameState.roundTimer);
+  if (gameState.countdownTimer) clearInterval(gameState.countdownTimer);
+  gameState.roundTimer = null;
+  gameState.countdownTimer = null;
+  gameState.phase = 'WAITING';
+  gameState.currentRound = 0;
+  gameState.roundStartTime = null;
+
+  if (keepPlayers) {
+    // Giữ danh sách người chơi trong phòng nhưng RESET TOÀN BỘ ĐIỂM SỐ VỀ 0
+    Object.values(gameState.players).forEach(p => {
+      p.totalPoints = 0;
+      p.lastRoundPoints = 0;
+      p.lastAnswerTime = 0;
+      p.isCorrectLast = false;
+      p.roundScores = [];
+      p.roundTimes = [];
+      p.answeredThisRound = false;
+    });
+  } else {
+    gameState.players = {};
+    gameState.socketToPlayer = {};
+  }
 }
 
 // ─── TÍNH ĐIỂM (100đ CƠ BẢN + ĐIỂM TỐC ĐỘ GIẢM DẦN TRONG 10S) ───
@@ -125,15 +140,26 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const cleanName = playerName.trim();
-    const effectivePlayerId = playerId || `p_${cleanName.toLowerCase()}_${Date.now()}`;
+    let cleanName = playerName.trim();
+    const effectivePlayerId = playerId || `p_${cleanName.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
-    // Tìm kiếm xem người chơi này đã từng có trong phòng chưa (theo ID, theo Tên hoặc theo IP)
+    // 1. Tìm chính xác theo Player ID của máy
     let existingPlayer = gameState.players[effectivePlayerId];
+
+    // 2. Nếu chưa thấy theo ID, tìm theo Tên nhưng CHỈ nhận lại nếu người đó đang bị mất kết nối (offline)
     if (!existingPlayer) {
-      existingPlayer = Object.values(gameState.players).find(
+      const matchByName = Object.values(gameState.players).find(
         p => p.name.toLowerCase() === cleanName.toLowerCase()
       );
+      if (matchByName) {
+        if (!matchByName.connected) {
+          // Người chơi này trước đó bị rớt mạng -> cho kết nối lại tài khoản cũ
+          existingPlayer = matchByName;
+        } else {
+          // Người mang tên này đang chơi online -> không cướp phiên, thêm số phân biệt
+          cleanName = `${cleanName} (${Math.floor(Math.random() * 89 + 11)})`;
+        }
+      }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -282,14 +308,34 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const playerCount = Object.keys(gameState.players).length;
-    if (playerCount < 1) {
+    const playerList = Object.values(gameState.players);
+    if (playerList.length < 1) {
       socket.emit('error-msg', { message: 'Cần ít nhất 1 bạn tham gia trên điện thoại để bắt đầu!' });
       return;
     }
 
+    // Dọn dẹp mọi timer đang chạy
+    if (gameState.roundTimer) clearTimeout(gameState.roundTimer);
+    if (gameState.countdownTimer) clearInterval(gameState.countdownTimer);
+    gameState.roundTimer = null;
+    gameState.countdownTimer = null;
+
+    // QUAN TRỌNG: RESET TOÀN BỘ ĐIỂM CỦA CÁC CHIẾN BINH VỀ 0 KHI BẮT ĐẦU TRẬN MỚI!
+    playerList.forEach(p => {
+      p.totalPoints = 0;
+      p.lastRoundPoints = 0;
+      p.lastAnswerTime = 0;
+      p.isCorrectLast = false;
+      p.roundScores = [];
+      p.roundTimes = [];
+      p.answeredThisRound = false;
+    });
+
     gameState.phase = 'COUNTDOWN';
     gameState.currentRound = 0;
+
+    // Báo cho toàn bộ máy điện thoại reset điểm về 0 ngay lập tức
+    io.emit('game-started', { totalRounds: QUESTIONS.length });
 
     let countdown = 5;
     io.emit('game-countdown', { seconds: countdown });
@@ -300,16 +346,19 @@ io.on('connection', (socket) => {
         io.emit('game-countdown', { seconds: countdown });
       } else {
         clearInterval(gameState.countdownTimer);
+        gameState.countdownTimer = null;
         startRound(0);
       }
     }, 1000);
 
-    console.log(`⚔️ Laptop MC khởi tranh Trận Chiến A13 với ${playerCount} chiến binh!`);
+    console.log(`⚔️ Laptop MC khởi tranh Trận Chiến A13 mới! Đã reset điểm ${playerList.length} chiến binh về 0đ.`);
   });
 
   // 4. MC BẤM SANG VÒNG KẾ TIẾP
   socket.on('tv-next-round', () => {
     if (gameState.phase !== 'ROUND_END') return;
+    gameState.phase = 'TRANSITIONING'; // Ngăn chặn bấm 2 lần liên tục
+
     if (gameState.currentRound < QUESTIONS.length - 1) {
       startRound(gameState.currentRound + 1);
     } else {
@@ -319,11 +368,10 @@ io.on('connection', (socket) => {
 
   // 5. MC RESET LÀM MỚI GAME (CHỈ KHI MC BẤM NÚT NÀY THÌ MỚI XÓA ĐIỂM)
   socket.on('tv-reset-game', () => {
-    if (gameState.roundTimer) clearTimeout(gameState.roundTimer);
-    if (gameState.countdownTimer) clearInterval(gameState.countdownTimer);
-    resetGame();
+    resetGame(true); // Giữ danh sách người chơi nhưng xóa sạch điểm về 0
     io.emit('game-reset', {});
-    console.log('🔄 Laptop MC đã Reset ván mới!');
+    broadcastLobbyUpdate();
+    console.log('🔄 Laptop MC đã Reset ván mới! Giữ nguyên người chơi, điểm đã về 0.');
   });
 
   // 6. NGƯỜI CHƠI NỘP ĐÁP ÁN TRONG 10S
@@ -331,6 +379,7 @@ io.on('connection', (socket) => {
     const pId = gameState.socketToPlayer[socket.id];
     const player = pId ? gameState.players[pId] : null;
     if (!player || gameState.phase !== 'PLAYING') return;
+    if (roundIndex !== gameState.currentRound) return;
     if (player.answeredThisRound) return;
 
     player.answeredThisRound = true;
@@ -355,18 +404,20 @@ io.on('connection', (socket) => {
       timeSeconds: player.lastAnswerTime
     });
 
-    // Cập nhật số người đã trả lời cho Tivi
-    const totalPlayers = Object.values(gameState.players).filter(p => p.connected !== false).length;
-    const answeredCount = Object.values(gameState.players).filter(p => p.answeredThisRound).length;
+    // CHỈ gửi tiến độ nộp bài cho Tivi (KHÔNG spam điện thoại để chống nghẽn lag mạng)
+    const allPlayers = Object.values(gameState.players);
+    const totalCount = allPlayers.length;
+    const answeredCount = allPlayers.filter(p => p.answeredThisRound).length;
 
-    io.emit('answered-progress', {
+    io.to('tv-control-room').emit('answered-progress', {
       answeredCount,
-      totalPlayers,
+      totalPlayers: totalCount,
       justAnsweredName: player.name,
       justAnsweredAvatar: player.avatar
     });
 
-    if (answeredCount >= totalPlayers && totalPlayers > 0) {
+    // Chỉ khi 100% tất cả người chơi trong phòng đã nộp bài mới kết thúc sớm
+    if (answeredCount >= totalCount && totalCount > 0) {
       endRound();
     }
   });
@@ -404,6 +455,11 @@ function broadcastLobbyUpdate() {
 
 // ─── ĐIỀU HÀNH VÒNG ĐẤU ─────────────────────────────────────
 function startRound(roundIdx) {
+  if (gameState.roundTimer) {
+    clearTimeout(gameState.roundTimer);
+    gameState.roundTimer = null;
+  }
+
   gameState.phase = 'PLAYING';
   gameState.currentRound = roundIdx;
   gameState.roundStartTime = Date.now();
@@ -414,7 +470,7 @@ function startRound(roundIdx) {
     return;
   }
 
-  // Reset cờ nộp bài của từng người
+  // Reset cờ nộp bài của từng người cho vòng này
   Object.values(gameState.players).forEach(p => {
     p.answeredThisRound = false;
     p.lastRoundPoints = 0;
@@ -432,29 +488,8 @@ function startRound(roundIdx) {
 
   io.emit('round-start', qData);
 
-  // Bộ đếm thời gian 10s
+  // Bộ đếm thời gian 10s chính xác
   gameState.roundTimer = setTimeout(() => {
-    Object.values(gameState.players).forEach(p => {
-      if (!p.answeredThisRound) {
-        p.answeredThisRound = true;
-        p.isCorrectLast = false;
-        p.lastRoundPoints = 0;
-        p.roundScores[roundIdx] = 0;
-        p.roundTimes[roundIdx] = TIME_LIMIT_SECONDS * 1000;
-        p.lastAnswerTime = TIME_LIMIT_SECONDS;
-
-        if (p.socketId) {
-          io.to(p.socketId).emit('answer-result', {
-            isCorrect: false,
-            points: 0,
-            totalPoints: p.totalPoints,
-            timeout: true,
-            correctAnswer: currentQ.answer
-          });
-        }
-      }
-    });
-
     endRound();
   }, TIME_LIMIT_SECONDS * 1000);
 
@@ -462,14 +497,39 @@ function startRound(roundIdx) {
 }
 
 function endRound() {
+  if (gameState.phase !== 'PLAYING') return; // Chặn gọi 2 lần!
+  gameState.phase = 'ROUND_END';
+
   if (gameState.roundTimer) {
     clearTimeout(gameState.roundTimer);
     gameState.roundTimer = null;
   }
 
-  gameState.phase = 'ROUND_END';
-  const leaderboard = getLeaderboard();
   const currentQ = QUESTIONS[gameState.currentRound];
+
+  // Những người chưa kịp nộp bài thì tính 0đ cho vòng này
+  Object.values(gameState.players).forEach(p => {
+    if (!p.answeredThisRound) {
+      p.answeredThisRound = true;
+      p.isCorrectLast = false;
+      p.lastRoundPoints = 0;
+      p.roundScores[gameState.currentRound] = 0;
+      p.roundTimes[gameState.currentRound] = TIME_LIMIT_SECONDS * 1000;
+      p.lastAnswerTime = TIME_LIMIT_SECONDS;
+
+      if (p.socketId) {
+        io.to(p.socketId).emit('answer-result', {
+          isCorrect: false,
+          points: 0,
+          totalPoints: p.totalPoints,
+          timeout: true,
+          correctAnswer: currentQ ? currentQ.answer : ''
+        });
+      }
+    }
+  });
+
+  const leaderboard = getLeaderboard();
 
   io.emit('round-end', {
     roundIndex: gameState.currentRound,

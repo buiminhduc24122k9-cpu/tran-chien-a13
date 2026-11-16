@@ -5,7 +5,14 @@
    Bổ sung hiệu ứng Confetti, 3D Candy Kingdom & Haptic Touch
    ============================================================ */
 
-const socket = io({ reconnection: true });
+const socket = io({
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 500,
+  reconnectionDelayMax: 2000,
+  timeout: 10000,
+  transports: ['websocket', 'polling']
+});
 
 // ─── QUẢN LÝ ĐỊNH DANH NGƯỜI CHƠI (LOCALSTORAGE) ───────────
 let myPlayerId = localStorage.getItem('a13_player_id');
@@ -123,169 +130,174 @@ function toggleAudio() {
   showToast(soundEnabled ? 'Đã bật âm thanh 🎵' : 'Đã tắt âm thanh 🔇');
 }
 
-// ─── 3D THREE.JS CANVAS NỀN HOÀNG GIA CHO ĐIỆN THOẠI ────────
+// ─── 3D THREE.JS CANVAS NỀN HOÀNG GIA CHO ĐIỆN THOẠI (TỐI ƯU SIÊU MƯỢT) ──
 let scene, camera, renderer, candyGroup, stardustField;
 let touchStartX = 0, touchStartY = 0;
 let camTargetX = 0, camTargetY = 0;
+let threeAnimationId = null;
 
 function initThreeWorld() {
   const canvas = document.getElementById('three-canvas');
   if (!canvas || typeof THREE === 'undefined') return;
 
-  scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0xFFD6E0, 0.032);
+  try {
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xFFD6E0, 0.035);
 
-  camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 20;
+    camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.z = 20;
 
-  renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  const amb = new THREE.AmbientLight(0xFFFFFF, 0.9);
-  scene.add(amb);
-
-  const dir = new THREE.DirectionalLight(0xFFB3C6, 1.2);
-  dir.position.set(6, 12, 8);
-  scene.add(dir);
-
-  const pinkLight = new THREE.PointLight(0xFF0A7B, 2.2, 40);
-  pinkLight.position.set(-8, 8, 10);
-  scene.add(pinkLight);
-
-  candyGroup = new THREE.Group();
-  scene.add(candyGroup);
-
-  // 1. Bánh Donut 3D phủ kem
-  for (let i = 0; i < 6; i++) {
-    const dGroup = new THREE.Group();
-    const dGeo = new THREE.TorusGeometry(1.3, 0.52, 16, 32);
-    const dMat = new THREE.MeshStandardMaterial({ color: 0xF4A261, roughness: 0.5 });
-    const dough = new THREE.Mesh(dGeo, dMat);
-    dGroup.add(dough);
-
-    const gGeo = new THREE.TorusGeometry(1.32, 0.55, 14, 32, Math.PI * 1.85);
-    const gMat = new THREE.MeshStandardMaterial({
-      color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
-      roughness: 0.15,
-      metalness: 0.1
+    renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha: true,
+      antialias: false, // Tắt antialias trên điện thoại để tiết kiệm pin & GPU, chống văng ứng dụng
+      powerPreference: 'low-power'
     });
-    const glaze = new THREE.Mesh(gGeo, gMat);
-    glaze.position.z = 0.05;
-    dGroup.add(glaze);
-
-    dGroup.position.set((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 32, (Math.random() - 0.5) * 14);
-    dGroup.userData = {
-      rx: (Math.random() - 0.5) * 0.015,
-      ry: (Math.random() - 0.5) * 0.015,
-      speed: 0.45 + Math.random() * 0.5,
-      offset: Math.random() * Math.PI * 2
-    };
-    candyGroup.add(dGroup);
-  }
-
-  // 2. Trái tim 3D Hồng Ngọt
-  const heartShape = new THREE.Shape();
-  heartShape.moveTo(0, 0.5);
-  heartShape.bezierCurveTo(0, 0.8, -0.6, 1.3, -1.2, 1.3);
-  heartShape.bezierCurveTo(-1.8, 1.3, -2.0, 0.8, -2.0, 0.3);
-  heartShape.bezierCurveTo(-2.0, -0.5, -1.2, -1.2, 0, -2.0);
-  heartShape.bezierCurveTo(1.2, -1.2, 2.0, -0.5, 2.0, 0.3);
-  heartShape.bezierCurveTo(2.0, 0.8, 1.8, 1.3, 1.2, 1.3);
-  heartShape.bezierCurveTo(0.6, 1.3, 0, 0.8, 0, 0.5);
-
-  const extrudeSettings = { depth: 0.35, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.12, bevelThickness: 0.12 };
-  const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
-  heartGeo.scale(0.48, 0.48, 0.48);
-
-  for (let i = 0; i < 7; i++) {
-    const heartMat = new THREE.MeshStandardMaterial({
-      color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4,
-      roughness: 0.12,
-      metalness: 0.2
-    });
-    const heart = new THREE.Mesh(heartGeo, heartMat);
-    heart.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 34, (Math.random() - 0.5) * 14);
-    heart.userData = {
-      rx: (Math.random() - 0.5) * 0.02,
-      ry: (Math.random() - 0.5) * 0.02,
-      speed: 0.6 + Math.random() * 0.4,
-      offset: Math.random() * Math.PI * 2
-    };
-    candyGroup.add(heart);
-  }
-
-  // 3. Kim Cương / Tinh Thể Kẹo Đường
-  for (let i = 0; i < 8; i++) {
-    const starGeo = new THREE.OctahedronGeometry(0.9 + Math.random() * 0.3);
-    const starMat = new THREE.MeshStandardMaterial({
-      color: i % 2 === 0 ? 0xFFD166 : 0x00A8E8,
-      roughness: 0.15,
-      metalness: 0.25
-    });
-    const star = new THREE.Mesh(starGeo, starMat);
-    star.position.set((Math.random() - 0.5) * 32, (Math.random() - 0.5) * 34, (Math.random() - 0.5) * 14);
-    star.userData = {
-      rx: (Math.random() - 0.5) * 0.02,
-      ry: (Math.random() - 0.5) * 0.02,
-      speed: 0.55 + Math.random() * 0.4,
-      offset: Math.random() * Math.PI * 2
-    };
-    candyGroup.add(star);
-  }
-
-  // 4. Bụi Sao Stardust Lấp Lánh
-  const pCount = 90;
-  const pGeo = new THREE.BufferGeometry();
-  const pPos = new Float32Array(pCount * 3);
-  for (let i = 0; i < pCount * 3; i += 3) {
-    pPos[i] = (Math.random() - 0.5) * 40;
-    pPos[i + 1] = (Math.random() - 0.5) * 45;
-    pPos[i + 2] = (Math.random() - 0.5) * 18;
-  }
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  const pMat = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 0.28, transparent: true, opacity: 0.85 });
-  stardustField = new THREE.Points(pGeo, pMat);
-  scene.add(stardustField);
-
-  // Parallax cảm ứng vuốt nhẹ trên màn hình
-  window.addEventListener('touchmove', (e) => {
-    if (e.touches.length > 0) {
-      const t = e.touches[0];
-      camTargetX = ((t.clientX / window.innerWidth) - 0.5) * 2.2;
-      camTargetY = -((t.clientY / window.innerHeight) - 0.5) * 1.8;
-    }
-  }, { passive: true });
-
-  window.addEventListener('resize', () => {
-    if (!camera || !renderer) return;
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    renderer.setPixelRatio(1); // Cố định 1x pixel ratio để không quá tải bộ nhớ RAM trên máy học sinh
 
-  let t = 0;
-  function anim() {
-    requestAnimationFrame(anim);
-    t += 0.015;
+    // Xử lý chống văng khi mất ngữ cảnh WebGL
+    canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('⚠️ WebGL context lost - tạm dừng 3D để giữ ổn định game');
+      if (threeAnimationId) cancelAnimationFrame(threeAnimationId);
+    }, false);
 
-    camera.position.x += (camTargetX - camera.position.x) * 0.05;
-    camera.position.y += (camTargetY - camera.position.y) * 0.05;
-    camera.lookAt(0, 0, 0);
+    const amb = new THREE.AmbientLight(0xFFFFFF, 0.95);
+    scene.add(amb);
 
-    candyGroup.children.forEach(m => {
-      m.rotation.x += m.userData.rx;
-      m.rotation.y += m.userData.ry;
-      m.position.y += Math.sin(t * m.userData.speed + m.userData.offset) * 0.014;
-    });
+    const dir = new THREE.DirectionalLight(0xFFB3C6, 1.1);
+    dir.position.set(6, 12, 8);
+    scene.add(dir);
 
-    if (stardustField) {
-      stardustField.rotation.y += 0.0008;
+    candyGroup = new THREE.Group();
+    scene.add(candyGroup);
+
+    // 1. Bánh Donut 3D phủ kem (vừa đủ nhẹ nhàng)
+    for (let i = 0; i < 4; i++) {
+      const dGroup = new THREE.Group();
+      const dGeo = new THREE.TorusGeometry(1.2, 0.48, 10, 20);
+      const dMat = new THREE.MeshLambertMaterial({ color: 0xF4A261 });
+      const dough = new THREE.Mesh(dGeo, dMat);
+      dGroup.add(dough);
+
+      const gGeo = new THREE.TorusGeometry(1.22, 0.5, 10, 20, Math.PI * 1.85);
+      const gMat = new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4 });
+      const glaze = new THREE.Mesh(gGeo, gMat);
+      glaze.position.z = 0.04;
+      dGroup.add(glaze);
+
+      dGroup.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12);
+      dGroup.userData = {
+        rx: (Math.random() - 0.5) * 0.015,
+        ry: (Math.random() - 0.5) * 0.015,
+        speed: 0.4 + Math.random() * 0.4,
+        offset: Math.random() * Math.PI * 2
+      };
+      candyGroup.add(dGroup);
     }
 
-    renderer.render(scene, camera);
+    // 2. Trái tim 3D Hồng Ngọt
+    const heartShape = new THREE.Shape();
+    heartShape.moveTo(0, 0.5);
+    heartShape.bezierCurveTo(0, 0.8, -0.6, 1.3, -1.2, 1.3);
+    heartShape.bezierCurveTo(-1.8, 1.3, -2.0, 0.8, -2.0, 0.3);
+    heartShape.bezierCurveTo(-2.0, -0.5, -1.2, -1.2, 0, -2.0);
+    heartShape.bezierCurveTo(1.2, -1.2, 2.0, -0.5, 2.0, 0.3);
+    heartShape.bezierCurveTo(2.0, 0.8, 1.8, 1.3, 1.2, 1.3);
+    heartShape.bezierCurveTo(0.6, 1.3, 0, 0.8, 0, 0.5);
+
+    const extrudeSettings = { depth: 0.3, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: 0.1, bevelThickness: 0.1 };
+    const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+    heartGeo.scale(0.42, 0.42, 0.42);
+
+    for (let i = 0; i < 4; i++) {
+      const heartMat = new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0xFF0A7B : 0xFF69B4 });
+      const heart = new THREE.Mesh(heartGeo, heartMat);
+      heart.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12);
+      heart.userData = {
+        rx: (Math.random() - 0.5) * 0.018,
+        ry: (Math.random() - 0.5) * 0.018,
+        speed: 0.5 + Math.random() * 0.4,
+        offset: Math.random() * Math.PI * 2
+      };
+      candyGroup.add(heart);
+    }
+
+    // 3. Kim Cương / Tinh Thể Kẹo Đường
+    for (let i = 0; i < 4; i++) {
+      const starGeo = new THREE.OctahedronGeometry(0.85);
+      const starMat = new THREE.MeshLambertMaterial({ color: i % 2 === 0 ? 0xFFD166 : 0x00A8E8 });
+      const star = new THREE.Mesh(starGeo, starMat);
+      star.position.set((Math.random() - 0.5) * 28, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 12);
+      star.userData = {
+        rx: (Math.random() - 0.5) * 0.02,
+        ry: (Math.random() - 0.5) * 0.02,
+        speed: 0.5 + Math.random() * 0.3,
+        offset: Math.random() * Math.PI * 2
+      };
+      candyGroup.add(star);
+    }
+
+    // 4. Bụi Sao Stardust Lấp Lánh
+    const pCount = 50;
+    const pGeo = new THREE.BufferGeometry();
+    const pPos = new Float32Array(pCount * 3);
+    for (let i = 0; i < pCount * 3; i += 3) {
+      pPos[i] = (Math.random() - 0.5) * 35;
+      pPos[i + 1] = (Math.random() - 0.5) * 40;
+      pPos[i + 2] = (Math.random() - 0.5) * 15;
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 0.25, transparent: true, opacity: 0.8 });
+    stardustField = new THREE.Points(pGeo, pMat);
+    scene.add(stardustField);
+
+    let touchScheduled = false;
+    window.addEventListener('touchmove', (e) => {
+      if (!touchScheduled && e.touches.length > 0) {
+        touchScheduled = true;
+        requestAnimationFrame(() => {
+          const t = e.touches[0];
+          camTargetX = ((t.clientX / window.innerWidth) - 0.5) * 1.5;
+          camTargetY = -((t.clientY / window.innerHeight) - 0.5) * 1.2;
+          touchScheduled = false;
+        });
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      if (!camera || !renderer) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    let t = 0;
+    function anim() {
+      threeAnimationId = requestAnimationFrame(anim);
+      t += 0.012;
+
+      camera.position.x += (camTargetX - camera.position.x) * 0.04;
+      camera.position.y += (camTargetY - camera.position.y) * 0.04;
+      camera.lookAt(0, 0, 0);
+
+      candyGroup.children.forEach(m => {
+        m.rotation.x += m.userData.rx;
+        m.rotation.y += m.userData.ry;
+        m.position.y += Math.sin(t * m.userData.speed + m.userData.offset) * 0.012;
+      });
+
+      if (stardustField) {
+        stardustField.rotation.y += 0.0006;
+      }
+
+      renderer.render(scene, camera);
+    }
+    anim();
+  } catch (err) {
+    console.warn('Không thể khởi tạo Three.js trên thiết bị này, dùng hình nền gradient mặc định:', err);
   }
-  anim();
 }
 
 function showScreen(id) {
@@ -430,8 +442,20 @@ function updateLobbyPlayers(players) {
   });
 }
 
+// Sự kiện khi MC bấm bắt đầu trận đấu mới
+socket.on('game-started', (data) => {
+  totalPoints = 0;
+  currentRound = 0;
+  hasAnsweredCurrentRound = false;
+  if ($('#game-score')) $('#game-score').textContent = '0';
+  if ($('#result-points')) $('#result-points').textContent = '+0';
+  if ($('#result-total')) $('#result-total').textContent = '0';
+});
+
 // Đếm ngược 5s
 socket.on('game-countdown', (data) => {
+  totalPoints = 0; // Đảm bảo reset điểm tuyệt đối
+  if ($('#game-score')) $('#game-score').textContent = '0';
   showScreen('screen-countdown');
   const countNum = $('#countdown-number');
   if (countNum) {
@@ -447,6 +471,11 @@ socket.on('game-countdown', (data) => {
 socket.on('round-start', (data) => {
   currentRound = data.roundIndex;
   hasAnsweredCurrentRound = data.alreadyAnswered || false;
+
+  if (currentRound === 0) {
+    totalPoints = 0; // Reset điểm ở vòng 1
+    if ($('#game-score')) $('#game-score').textContent = '0';
+  }
 
   showScreen('screen-game');
   SoundFX.fanfare();
@@ -580,11 +609,13 @@ socket.on('round-end', (data) => {
   showScreen('screen-round-result');
   SoundFX.fanfare();
 
-  const myResult = data.leaderboard.find(p => p.name === myName);
+  const myResult = data.leaderboard.find(p => p.id === myPlayerId) || data.leaderboard.find(p => p.name === myName);
   const roundPts = myResult ? myResult.lastRoundPoints : 0;
+  totalPoints = myResult ? myResult.totalPoints : totalPoints;
 
   $('#result-points').textContent = `+${roundPts}`;
-  $('#result-total').textContent = myResult?.totalPoints || 0;
+  $('#result-total').textContent = totalPoints;
+  if ($('#game-score')) $('#game-score').textContent = totalPoints;
 
   if (myResult) {
     $('#my-current-rank-tag').innerHTML = `Vị trí hiện tại: <strong>#${myResult.rank}</strong> trên Bảng Vàng (${myResult.prize})`;
@@ -634,8 +665,12 @@ socket.on('game-over', (data) => {
 socket.on('game-reset', () => {
   totalPoints = 0;
   currentRound = 0;
+  hasAnsweredCurrentRound = false;
+  if ($('#game-score')) $('#game-score').textContent = '0';
+  if ($('#result-points')) $('#result-points').textContent = '+0';
+  if ($('#result-total')) $('#result-total').textContent = '0';
   showScreen('screen-lobby');
-  showToast('🔄 Đã làm mới trận đấu!');
+  showToast('🔄 Đã khởi tạo trận mới! Điểm số đã reset về 0đ.');
 });
 
 socket.on('error-msg', (data) => {
